@@ -404,7 +404,8 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "hangup", Hangup);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "setHold", SetHold);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "reinvite", Reinvite);
-    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "update", DialDtmf);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "update", Update);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "dtmf", DialDtmf);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "transfer", Transfer);
 
     target->Set(name, SIPSTERCall_constructor->GetFunction());

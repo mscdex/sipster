@@ -141,6 +141,7 @@ enum SIPEvent {
 struct SIPEventInfo {
   SIPEvent type;
   SIPSTERCall* call;
+  SIPSTERAccount* acct;
   void* args;
 };
 static list<SIPEventInfo> event_queue;
@@ -434,6 +435,7 @@ public:
     EV_ARGS_INCALL* args = new EV_ARGS_INCALL;
     ev.type = EVENT_INCALL;
     ev.call = call;
+    ev.acct = this;
     ev.args = reinterpret_cast<void*>(args);
 
     args->localUri = ci.localUri;
@@ -763,7 +765,7 @@ public:
   }
 };
 
-// start event processing-related definitions
+// start event processing-related definitions ==================================
 static Persistent<Object> global_context;
 void dumb_cb(uv_async_t* handle, int status) {
   while (true) {
@@ -786,9 +788,9 @@ void dumb_cb(uv_async_t* handle, int status) {
 #undef X
         Local<Value> new_call_args[1] = { Integer::New(args->_id) };
         Local<Object> call_obj = SIPSTERCall_constructor->GetFunction()->NewInstance(1, new_call_args);
+        SIPSTERAccount* acct = ev.acct;
         SIPSTERCall* call = ev.call;
         CallInfo ci = call->getInfo();
-        SIPSTERAccount* acct = static_cast<SIPSTERAccount*>(SIPSTERAccount::lookup(ci.accId));
         Handle<Value> emit_argv[3] = { INCALL_call_symbol, obj, call_obj };
         call->emit->Call(acct->handle_, 3, emit_argv);
         delete args;
@@ -845,7 +847,7 @@ void dumb_cb(uv_async_t* handle, int status) {
   }
   uv_mutex_unlock(&event_mutex);
 }
-// end event processing-related definitions
+// =============================================================================
 
 // static methods ==============================================================
 

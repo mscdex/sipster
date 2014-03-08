@@ -402,7 +402,7 @@ public:
 
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "answer", Answer);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "hangup", Hangup);
-    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "setHold", SetHold);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "hold", SetHold);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "reinvite", Reinvite);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "update", Update);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "dtmf", DialDtmf);

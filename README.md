@@ -30,11 +30,11 @@ var sipster = require('sipster');
 sipster.init();
 
 // set up a transport to listen for incoming connections, defaults to UDP
-var transport = new lib.Transport({ port: 5060 });
+var transport = new sipster.Transport({ port: 5060 });
 
 // set up a SIP account, we need at least one -- as requried by pjsip
 // this sets up an account for calls coming from 192.168.100.10
-var acct = new lib.Account({
+var acct = new sipster.Account({
   idUri: 'sip:192.168.100.10'
 });
 
@@ -57,7 +57,7 @@ acct.on('call', function(info, call) {
 });
 
 // finalize the initialization phase ...
-lib.start();
+sipster.start();
 ```
 
 

@@ -9,6 +9,9 @@ using namespace node;
 using namespace v8;
 using namespace pj;
 
+class SIPSTERAccount;
+class SIPSTERCall;
+
 #define JS2PJ_INT(js, prop, pj) do {                                \
   val = js->Get(String::New(#prop));                                \
   if (val->IsInt32()) {                                             \
@@ -74,7 +77,6 @@ struct EV_ARGS_INCALL {
 // call state change event(s) ==================================================
 #define N_CALLSTATE_FIELDS 2
 #define CALLSTATE_FIELDS                                            \
-  X(CALLSTATE, int, _id, Integer, _id)                              \
   X(CALLSTATE, pjsip_inv_state, _state, Integer, _state)
 struct EV_ARGS_CALLSTATE {
 #define X(kind, ctype, name, v8type, valconv) ctype name;
@@ -86,7 +88,6 @@ struct EV_ARGS_CALLSTATE {
 // DTMF event ==================================================================
 #define N_DTMF_FIELDS 2
 #define DTMF_FIELDS                                                 \
-  X(DTMF, int, _id, Integer, _id)                                   \
   X(DTMF, string, digit, String, digit.c_str())
 struct EV_ARGS_DTMF {
 #define X(kind, ctype, name, v8type, valconv) ctype name;
@@ -118,7 +119,7 @@ struct EV_ARGS_DTMF {
   X(DTMF, dtmf)
 
 
-// start generic event-related definitions
+// start generic event-related definitions =====================================
 #define X(kind, literal)                                            \
   static Persistent<String> kind##_##literal##_symbol;
   EVENT_SYMBOLS
@@ -132,26 +133,25 @@ enum SIPEvent {
 };
 struct SIPEventInfo {
   SIPEvent type;
+  SIPSTERCall* call;
   void* args;
 };
 static list<SIPEventInfo> event_queue;
 static uv_mutex_t event_mutex;
 static uv_mutex_t async_mutex;
-// end generic event-related definitions
+// =============================================================================
 
-// start PJSUA2-specific definitions
+// start PJSUA2-specific definitions ===========================================
 static Endpoint *ep = new Endpoint;
 static bool ep_init = false;
 static bool ep_start = false;
 static EpConfig ep_cfg;
-// end PJSUA2-specific definitions
+// =============================================================================
 
 static Persistent<FunctionTemplate> SIPSTERCall_constructor;
 static Persistent<FunctionTemplate> SIPSTERAccount_constructor;
 static Persistent<String> emit_symbol;
 static uv_async_t dumb;
-
-class SIPSTERAccount;
 
 class SIPSTERCall : public Call, public ObjectWrap {
 public:
@@ -176,9 +176,9 @@ public:
     SIPEventInfo ev;
     EV_ARGS_CALLSTATE* args = new EV_ARGS_CALLSTATE;
     ev.type = EVENT_CALLSTATE;
+    ev.call = this;
     ev.args = reinterpret_cast<void*>(args);
 
-    args->_id = ci.id;
     args->_state = ci.state;
 
     uv_mutex_lock(&event_mutex);
@@ -194,9 +194,9 @@ public:
     SIPEventInfo ev;
     EV_ARGS_DTMF* args = new EV_ARGS_DTMF;
     ev.type = EVENT_DTMF;
+    ev.call = this;
     ev.args = reinterpret_cast<void*>(args);
 
-    args->_id = ci.id;
     args->digit = prm.digit;
 
     uv_mutex_lock(&event_mutex);
@@ -427,15 +427,15 @@ public:
   }*/
 
   virtual void onIncomingCall(OnIncomingCallParam &iprm) {
-    Call *call = new SIPSTERCall(*this, iprm.callId);
+    SIPSTERCall *call = new SIPSTERCall(*this, iprm.callId);
     CallInfo ci = call->getInfo();
 
     SIPEventInfo ev;
     EV_ARGS_INCALL* args = new EV_ARGS_INCALL;
     ev.type = EVENT_INCALL;
+    ev.call = call;
     ev.args = reinterpret_cast<void*>(args);
 
-    args->_id = iprm.callId;
     args->localUri = ci.localUri;
     args->localContact = ci.localContact;
     args->remoteUri = ci.remoteUri;
@@ -790,7 +790,7 @@ void dumb_cb(uv_async_t* handle, int status) {
 #undef X
         Local<Value> new_call_args[1] = { Integer::New(args->_id) };
         Local<Object> call_obj = SIPSTERCall_constructor->GetFunction()->NewInstance(1, new_call_args);
-        SIPSTERCall* call = static_cast<SIPSTERCall*>(SIPSTERCall::lookup(args->_id));
+        SIPSTERCall* call = ev.call;
         CallInfo ci = call->getInfo();
         SIPSTERAccount* acct = static_cast<SIPSTERAccount*>(SIPSTERAccount::lookup(ci.accId));
         Handle<Value> emit_argv[3] = { INCALL_call_symbol, obj, call_obj };
@@ -824,7 +824,7 @@ void dumb_cb(uv_async_t* handle, int status) {
           break;
         }
         if (!ev_name.IsEmpty()) {
-          SIPSTERCall* call = static_cast<SIPSTERCall*>(SIPSTERCall::lookup(args->_id));
+          SIPSTERCall* call = ev.call;
           Handle<Value> emit_argv[1] = { ev_name };
           call->emit->Call(call->handle_, 1, emit_argv);
           Handle<Value> emit_catchall_argv[2] = { CALLSTATE_state_symbol, ev_name };
@@ -835,7 +835,7 @@ void dumb_cb(uv_async_t* handle, int status) {
       break;
       case EVENT_DTMF: {
         EV_ARGS_DTMF* args = reinterpret_cast<EV_ARGS_DTMF*>(ev.args);
-        SIPSTERCall* call = static_cast<SIPSTERCall*>(SIPSTERCall::lookup(args->_id));
+        SIPSTERCall* call = ev.call;
         // TODO: make a symbol for each DTMF digit and use that instead?
         Local<Value> dtmf_char = String::New(args->digit.c_str());
         Handle<Value> emit_argv[2] = { DTMF_dtmf_symbol, dtmf_char };

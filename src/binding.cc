@@ -56,6 +56,13 @@ class SIPSTERCall;
   obj->Set(String::New(#prop), Boolean::New(pj.prop.c_str()));      \
 } while(0)
 
+#define ENQUEUE_EVENT(ev) do {                                      \
+  uv_mutex_lock(&event_mutex);                                      \
+  event_queue.push_back(ev);                                        \
+  uv_mutex_unlock(&event_mutex);                                    \
+  uv_async_send(&dumb);                                             \
+} while(0)
+
 
 // incoming call event =========================================================
 #define N_INCALL_FIELDS 7
@@ -181,11 +188,7 @@ public:
 
     args->_state = ci.state;
 
-    uv_mutex_lock(&event_mutex);
-    event_queue.push_back(ev);
-    uv_mutex_unlock(&event_mutex);
-
-    uv_async_send(&dumb);
+    ENQUEUE_EVENT(ev);
   }
 
   virtual void onDtmfDigit(OnDtmfDigitParam &prm) {
@@ -199,11 +202,7 @@ public:
 
     args->digit = prm.digit;
 
-    uv_mutex_lock(&event_mutex);
-    event_queue.push_back(ev);
-    uv_mutex_unlock(&event_mutex);
-
-    uv_async_send(&dumb);
+    ENQUEUE_EVENT(ev);
   }
 
   static Handle<Value> New(const Arguments& args) {
@@ -443,11 +442,7 @@ public:
     args->callId = ci.callIdString;
     args->srcAddress = iprm.rdata.srcAddress;
 
-    uv_mutex_lock(&event_mutex);
-    event_queue.push_back(ev);
-    uv_mutex_unlock(&event_mutex);
-
-    uv_async_send(&dumb);
+    ENQUEUE_EVENT(ev);
   }
 
   static Handle<Value> New(const Arguments& args) {

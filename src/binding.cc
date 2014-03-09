@@ -359,8 +359,11 @@ public:
         string errstr = "Call.update() error: " + err.info();
         return ThrowException(Exception::Error(String::New(errstr.c_str())));
       }
-    } else
-      return ThrowException(Exception::Error(String::New("Missing DTMF string")));
+    } else {
+      return ThrowException(
+        Exception::Error(String::New("Missing DTMF string"))
+      );
+    }
 
     return Undefined();
   }
@@ -378,8 +381,11 @@ public:
         if (args.Length() > 2 && args[2]->IsString())
           prm.reason = string(*String::Utf8Value(args[1]->ToString()));
       }
-    } else
-      return ThrowException(Exception::Error(String::New("Missing transfer destination")));
+    } else {
+      return ThrowException(
+        Exception::Error(String::New("Missing transfer destination"))
+      );
+    }
 
     try {
       call->xfer(dest, prm);
@@ -469,9 +475,10 @@ public:
 
       val = acct_obj->Get(String::New("regConfig"));
       if (val->IsObject()) {
+        AccountRegConfig regConfig = acct_cfg.regConfig;
         Local<Object> reg_obj = val->ToObject();
-        JS2PJ_STR(reg_obj, registrarUri, acct_cfg.regConfig);
-        JS2PJ_BOOL(reg_obj, registerOnAdd, acct_cfg.regConfig);
+        JS2PJ_STR(reg_obj, registrarUri, regConfig);
+        JS2PJ_BOOL(reg_obj, registerOnAdd, regConfig);
 
         val = reg_obj->Get(String::New("headers"));
         if (val->IsObject()) {
@@ -488,20 +495,21 @@ public:
               hdr.hValue = string(*String::AsciiValue(value->ToString()));
               sipheaders.push_back(hdr);
             }
-            acct_cfg.regConfig.headers = sipheaders;
+            regConfig.headers = sipheaders;
           }
         }
 
-        JS2PJ_UINT(reg_obj, timeoutSec, acct_cfg.regConfig);
-        JS2PJ_UINT(reg_obj, retryIntervalSec, acct_cfg.regConfig);
-        JS2PJ_UINT(reg_obj, firstRetryIntervalSec, acct_cfg.regConfig);
-        JS2PJ_UINT(reg_obj, delayBeforeRefreshSec, acct_cfg.regConfig);
-        JS2PJ_BOOL(reg_obj, dropCallsOnFail, acct_cfg.regConfig);
-        JS2PJ_UINT(reg_obj, unregWaitSec, acct_cfg.regConfig);
-        JS2PJ_UINT(reg_obj, proxyUse, acct_cfg.regConfig);
+        JS2PJ_UINT(reg_obj, timeoutSec, regConfig);
+        JS2PJ_UINT(reg_obj, retryIntervalSec, regConfig);
+        JS2PJ_UINT(reg_obj, firstRetryIntervalSec, regConfig);
+        JS2PJ_UINT(reg_obj, delayBeforeRefreshSec, regConfig);
+        JS2PJ_BOOL(reg_obj, dropCallsOnFail, regConfig);
+        JS2PJ_UINT(reg_obj, unregWaitSec, regConfig);
+        JS2PJ_UINT(reg_obj, proxyUse, regConfig);
       }
       val = acct_obj->Get(String::New("sipConfig"));
       if (val->IsObject()) {
+        AccountSipConfig sipConfig = acct_cfg.sipConfig;
         Local<Object> sip_obj = val->ToObject();
 
         val = sip_obj->Get(String::New("authCreds"));
@@ -548,7 +556,7 @@ public:
               }
             }
             if (creds.size() > 0)
-              acct_cfg.sipConfig.authCreds = creds;
+              sipConfig.authCreds = creds;
           }
         }
 
@@ -562,28 +570,30 @@ public:
               const Local<Value> value = arr_obj->Get(i);
               proxies.push_back(string(*String::AsciiValue(value->ToString())));
             }
-            acct_cfg.sipConfig.proxies = proxies;
+            sipConfig.proxies = proxies;
           }
         }
 
-        JS2PJ_STR(sip_obj, contactForced, acct_cfg.sipConfig);
-        JS2PJ_STR(sip_obj, contactParams, acct_cfg.sipConfig);
-        JS2PJ_STR(sip_obj, contactUriParams, acct_cfg.sipConfig);
-        JS2PJ_BOOL(sip_obj, authInitialEmpty, acct_cfg.sipConfig);
-        JS2PJ_STR(sip_obj, authInitialAlgorithm, acct_cfg.sipConfig);
+        JS2PJ_STR(sip_obj, contactForced, sipConfig);
+        JS2PJ_STR(sip_obj, contactParams, sipConfig);
+        JS2PJ_STR(sip_obj, contactUriParams, sipConfig);
+        JS2PJ_BOOL(sip_obj, authInitialEmpty, sipConfig);
+        JS2PJ_STR(sip_obj, authInitialAlgorithm, sipConfig);
         // TODO: transportId
       }
       val = acct_obj->Get(String::New("callConfig"));
       if (val->IsObject()) {
+        AccountCallConfig callConfig = acct_cfg.callConfig;
         Local<Object> call_obj = val->ToObject();
-        JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, acct_cfg.callConfig);
-        JS2PJ_ENUM(call_obj, prackUse, pjsua_100rel_use, acct_cfg.callConfig);
-        JS2PJ_ENUM(call_obj, timerUse, pjsua_sip_timer_use, acct_cfg.callConfig);
-        JS2PJ_UINT(call_obj, timerMinSESec, acct_cfg.callConfig);
-        JS2PJ_UINT(call_obj, timerSessExpiresSec, acct_cfg.callConfig);
+        JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, callConfig);
+        JS2PJ_ENUM(call_obj, prackUse, pjsua_100rel_use, callConfig);
+        JS2PJ_ENUM(call_obj, timerUse, pjsua_sip_timer_use, callConfig);
+        JS2PJ_UINT(call_obj, timerMinSESec, callConfig);
+        JS2PJ_UINT(call_obj, timerSessExpiresSec, callConfig);
       }
       val = acct_obj->Get(String::New("presConfig"));
       if (val->IsObject()) {
+        AccountPresConfig presConfig = acct_cfg.presConfig;
         Local<Object> pres_obj = val->ToObject();
 
         val = pres_obj->Get(String::New("headers"));
@@ -601,98 +611,107 @@ public:
               hdr.hValue = string(*String::AsciiValue(value->ToString()));
               sipheaders.push_back(hdr);
             }
-            acct_cfg.presConfig.headers = sipheaders;
+            presConfig.headers = sipheaders;
           }
         }
 
-        JS2PJ_BOOL(pres_obj, publishEnabled, acct_cfg.presConfig);
-        JS2PJ_BOOL(pres_obj, publishQueue, acct_cfg.presConfig);
-        JS2PJ_UINT(pres_obj, publishShutdownWaitMsec, acct_cfg.presConfig);
-        JS2PJ_STR(pres_obj, pidfTupleId, acct_cfg.presConfig);
+        JS2PJ_BOOL(pres_obj, publishEnabled, presConfig);
+        JS2PJ_BOOL(pres_obj, publishQueue, presConfig);
+        JS2PJ_UINT(pres_obj, publishShutdownWaitMsec, presConfig);
+        JS2PJ_STR(pres_obj, pidfTupleId, presConfig);
       }
       val = acct_obj->Get(String::New("mwiConfig"));
       if (val->IsObject()) {
+        AccountMwiConfig mwiConfig = acct_cfg.mwiConfig;
         Local<Object> mwi_obj = val->ToObject();
-        JS2PJ_BOOL(mwi_obj, enabled, acct_cfg.mwiConfig);
-        JS2PJ_UINT(mwi_obj, expirationSec, acct_cfg.mwiConfig);
+        JS2PJ_BOOL(mwi_obj, enabled, mwiConfig);
+        JS2PJ_UINT(mwi_obj, expirationSec, mwiConfig);
       }
       val = acct_obj->Get(String::New("natConfig"));
       if (val->IsObject()) {
+        AccountNatConfig natConfig = acct_cfg.natConfig;
         Local<Object> nat_obj = val->ToObject();
-        JS2PJ_ENUM(nat_obj, sipStunUse, pjsua_stun_use, acct_cfg.natConfig);
-        JS2PJ_ENUM(nat_obj, mediaStunUse, pjsua_stun_use, acct_cfg.natConfig);
-        JS2PJ_BOOL(nat_obj, iceEnabled, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, iceMaxHostCands, acct_cfg.natConfig);
-        JS2PJ_BOOL(nat_obj, iceAggressiveNomination, acct_cfg.natConfig);
-        JS2PJ_UINT(nat_obj, iceNominatedCheckDelayMsec, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, iceWaitNominationTimeoutMsec, acct_cfg.natConfig);
-        JS2PJ_BOOL(nat_obj, iceNoRtcp, acct_cfg.natConfig);
-        JS2PJ_BOOL(nat_obj, iceAlwaysUpdate, acct_cfg.natConfig);
-        JS2PJ_BOOL(nat_obj, turnEnabled, acct_cfg.natConfig);
-        JS2PJ_STR(nat_obj, turnServer, acct_cfg.natConfig);
-        JS2PJ_ENUM(nat_obj, turnConnType, pj_turn_tp_type, acct_cfg.natConfig);
-        JS2PJ_STR(nat_obj, turnUserName, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, turnPasswordType, acct_cfg.natConfig);
-        JS2PJ_STR(nat_obj, turnPassword, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, contactRewriteUse, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, contactRewriteMethod, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, viaRewriteUse, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, sdpNatRewriteUse, acct_cfg.natConfig);
-        JS2PJ_INT(nat_obj, sipOutboundUse, acct_cfg.natConfig);
-        JS2PJ_STR(nat_obj, sipOutboundInstanceId, acct_cfg.natConfig);
-        JS2PJ_STR(nat_obj, sipOutboundRegId, acct_cfg.natConfig);
-        JS2PJ_UINT(nat_obj, udpKaIntervalSec, acct_cfg.natConfig);
-        JS2PJ_STR(nat_obj, udpKaData, acct_cfg.natConfig);
+        JS2PJ_ENUM(nat_obj, sipStunUse, pjsua_stun_use, natConfig);
+        JS2PJ_ENUM(nat_obj, mediaStunUse, pjsua_stun_use, natConfig);
+        JS2PJ_BOOL(nat_obj, iceEnabled, natConfig);
+        JS2PJ_INT(nat_obj, iceMaxHostCands, natConfig);
+        JS2PJ_BOOL(nat_obj, iceAggressiveNomination, natConfig);
+        JS2PJ_UINT(nat_obj, iceNominatedCheckDelayMsec, natConfig);
+        JS2PJ_INT(nat_obj, iceWaitNominationTimeoutMsec, natConfig);
+        JS2PJ_BOOL(nat_obj, iceNoRtcp, natConfig);
+        JS2PJ_BOOL(nat_obj, iceAlwaysUpdate, natConfig);
+        JS2PJ_BOOL(nat_obj, turnEnabled, natConfig);
+        JS2PJ_STR(nat_obj, turnServer, natConfig);
+        JS2PJ_ENUM(nat_obj, turnConnType, pj_turn_tp_type, natConfig);
+        JS2PJ_STR(nat_obj, turnUserName, natConfig);
+        JS2PJ_INT(nat_obj, turnPasswordType, natConfig);
+        JS2PJ_STR(nat_obj, turnPassword, natConfig);
+        JS2PJ_INT(nat_obj, contactRewriteUse, natConfig);
+        JS2PJ_INT(nat_obj, contactRewriteMethod, natConfig);
+        JS2PJ_INT(nat_obj, viaRewriteUse, natConfig);
+        JS2PJ_INT(nat_obj, sdpNatRewriteUse, natConfig);
+        JS2PJ_INT(nat_obj, sipOutboundUse, natConfig);
+        JS2PJ_STR(nat_obj, sipOutboundInstanceId, natConfig);
+        JS2PJ_STR(nat_obj, sipOutboundRegId, natConfig);
+        JS2PJ_UINT(nat_obj, udpKaIntervalSec, natConfig);
+        JS2PJ_STR(nat_obj, udpKaData, natConfig);
       }
       val = acct_obj->Get(String::New("mediaConfig"));
       if (val->IsObject()) {
+        AccountMediaConfig mediaConfig = acct_cfg.mediaConfig;
         Local<Object> media_obj = val->ToObject();
 
         val = media_obj->Get(String::New("transportConfig"));
         if (val->IsObject()) {
+          TransportConfig transportConfig = mediaConfig.transportConfig;
           Local<Object> obj = val->ToObject();
-          JS2PJ_UINT(obj, port, acct_cfg.mediaConfig.transportConfig);
-          JS2PJ_UINT(obj, portRange, acct_cfg.mediaConfig.transportConfig);
-          JS2PJ_STR(obj, publicAddress, acct_cfg.mediaConfig.transportConfig);
-          JS2PJ_STR(obj, boundAddress, acct_cfg.mediaConfig.transportConfig);
-          JS2PJ_ENUM(obj, qosType, pj_qos_type, acct_cfg.mediaConfig.transportConfig);
+          JS2PJ_UINT(obj, port, transportConfig);
+          JS2PJ_UINT(obj, portRange, transportConfig);
+          JS2PJ_STR(obj, publicAddress, transportConfig);
+          JS2PJ_STR(obj, boundAddress, transportConfig);
+          JS2PJ_ENUM(obj, qosType, pj_qos_type, transportConfig);
           //JS2PJ_INT(obj, qosParams, acct_cfg.transportConfig);
 
           val = obj->Get(String::New("tlsConfig"));
           if (val->IsObject()) {
+            TlsConfig tlsConfig = transportConfig.tlsConfig;
             Local<Object> tls_obj = val->ToObject();
-            JS2PJ_STR(tls_obj, CaListFile, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_STR(tls_obj, certFile, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_STR(tls_obj, privKeyFile, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_STR(tls_obj, password, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, acct_cfg.mediaConfig.transportConfig.tlsConfig);
+            JS2PJ_STR(tls_obj, CaListFile, tlsConfig);
+            JS2PJ_STR(tls_obj, certFile, tlsConfig);
+            JS2PJ_STR(tls_obj, privKeyFile, tlsConfig);
+            JS2PJ_STR(tls_obj, password, tlsConfig);
+            JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tlsConfig);
             // TODO: ciphers
-            JS2PJ_BOOL(tls_obj, verifyServer, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_BOOL(tls_obj, verifyClient, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_BOOL(tls_obj, requireClientCert, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_UINT(tls_obj, msecTimeout, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            //JS2PJ_INT(tls_obj, qosParams, acct_cfg.mediaConfig.transportConfig.tlsConfig);
-            JS2PJ_BOOL(tls_obj, qosIgnoreError, acct_cfg.mediaConfig.transportConfig.tlsConfig);
+            JS2PJ_BOOL(tls_obj, verifyServer, tlsConfig);
+            JS2PJ_BOOL(tls_obj, verifyClient, tlsConfig);
+            JS2PJ_BOOL(tls_obj, requireClientCert, tlsConfig);
+            JS2PJ_UINT(tls_obj, msecTimeout, tlsConfig);
+            JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tlsConfig);
+            //JS2PJ_INT(tls_obj, qosParams, tlsConfig);
+            JS2PJ_BOOL(tls_obj, qosIgnoreError, tlsConfig);
           }
         }
 
-        JS2PJ_BOOL(media_obj, lockCodecEnabled, acct_cfg.mediaConfig);
-        JS2PJ_BOOL(media_obj, streamKaEnabled, acct_cfg.mediaConfig);
-        JS2PJ_ENUM(media_obj, srtpUse, pjmedia_srtp_use, acct_cfg.mediaConfig);
-        JS2PJ_INT(media_obj, srtpSecureSignaling, acct_cfg.mediaConfig);
-        JS2PJ_ENUM(media_obj, ipv6Use, pjsua_ipv6_use, acct_cfg.mediaConfig);
+        JS2PJ_BOOL(media_obj, lockCodecEnabled, mediaConfig);
+        JS2PJ_BOOL(media_obj, streamKaEnabled, mediaConfig);
+        JS2PJ_ENUM(media_obj, srtpUse, pjmedia_srtp_use, mediaConfig);
+        JS2PJ_INT(media_obj, srtpSecureSignaling, mediaConfig);
+        JS2PJ_ENUM(media_obj, ipv6Use, pjsua_ipv6_use, mediaConfig);
       }
       val = acct_obj->Get(String::New("videoConfig"));
       if (val->IsObject()) {
+        AccountVideoConfig videoConfig = acct_cfg.videoConfig;
         Local<Object> vid_obj = val->ToObject();
-        JS2PJ_BOOL(vid_obj, autoShowIncoming, acct_cfg.videoConfig);
-        JS2PJ_BOOL(vid_obj, autoTransmitOutgoing, acct_cfg.videoConfig);
-        JS2PJ_UINT(vid_obj, windowFlags, acct_cfg.videoConfig);
-        JS2PJ_INT(vid_obj, defaultCaptureDevice, acct_cfg.videoConfig);
-        JS2PJ_INT(vid_obj, defaultRenderDevice, acct_cfg.videoConfig);
-        JS2PJ_ENUM(vid_obj, rateControlMethod, pjmedia_vid_stream_rc_method, acct_cfg.videoConfig);
-        JS2PJ_UINT(vid_obj, rateControlBandwidth, acct_cfg.videoConfig);
+        JS2PJ_BOOL(vid_obj, autoShowIncoming, videoConfig);
+        JS2PJ_BOOL(vid_obj, autoTransmitOutgoing, videoConfig);
+        JS2PJ_UINT(vid_obj, windowFlags, videoConfig);
+        JS2PJ_INT(vid_obj, defaultCaptureDevice, videoConfig);
+        JS2PJ_INT(vid_obj, defaultRenderDevice, videoConfig);
+        JS2PJ_ENUM(vid_obj,
+                   rateControlMethod,
+                   pjmedia_vid_stream_rc_method,
+                   videoConfig);
+        JS2PJ_UINT(vid_obj, rateControlBandwidth, videoConfig);
       }
     }
 
@@ -787,7 +806,9 @@ void dumb_cb(uv_async_t* handle, int status) {
         INCALL_FIELDS
 #undef X
         Local<Value> new_call_args[1] = { Integer::New(args->_id) };
-        Local<Object> call_obj = SIPSTERCall_constructor->GetFunction()->NewInstance(1, new_call_args);
+        Local<Object> call_obj;
+        call_obj = SIPSTERCall_constructor->GetFunction()
+                                          ->NewInstance(1, new_call_args);
         SIPSTERAccount* acct = ev.acct;
         SIPSTERCall* call = ev.call;
         CallInfo ci = call->getInfo();

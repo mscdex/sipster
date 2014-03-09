@@ -64,6 +64,18 @@ class SIPSTERCall;
 } while(0)
 
 
+// registration change event(s) ================================================
+#define N_REGSTATE_FIELDS 2
+#define REGSTATE_FIELDS                                               \
+  X(REGSTATE, bool, active, Boolean, active)                          \
+  X(REGSTATE, int, statusCode, Integer, statusCode)
+struct EV_ARGS_REGSTATE {
+#define X(kind, ctype, name, v8type, valconv) ctype name;
+  REGSTATE_FIELDS
+#undef X
+};
+// =============================================================================
+
 // incoming call event =========================================================
 #define N_INCALL_FIELDS 7
 #define INCALL_FIELDS                                               \
@@ -108,12 +120,13 @@ struct EV_ARGS_DTMF {
   INCALL_FIELDS
   CALLSTATE_FIELDS
   DTMF_FIELDS
+  REGSTATE_FIELDS
 #undef X
-
 #define EVENT_TYPES                                                 \
   X(INCALL)                                                         \
   X(CALLSTATE)                                                      \
-  X(DTMF)
+  X(DTMF)                                                           \
+  X(REGSTATE)
 #define EVENT_SYMBOLS                                               \
   X(INCALL, call)                                                   \
   X(CALLSTATE, calling)                                             \
@@ -123,8 +136,10 @@ struct EV_ARGS_DTMF {
   X(CALLSTATE, confirmed)                                           \
   X(CALLSTATE, disconnected)                                        \
   X(CALLSTATE, state)                                               \
-  X(DTMF, dtmf)
-
+  X(DTMF, dtmf)                                                     \
+  X(REGSTATE, registered)                                           \
+  X(REGSTATE, unregistered)                                         \
+  X(REGSTATE, state)
 
 // start generic event-related definitions =====================================
 #define X(kind, literal)                                            \
@@ -429,9 +444,19 @@ public:
     emit.Clear();
   }
 
-  /*virtual void onRegState(OnRegStateParam &prm) {
-    //AccountInfo ai = getInfo();
-  }*/
+  virtual void onRegState(OnRegStateParam &prm) {
+    AccountInfo ai = getInfo();
+    SIPEventInfo ev;
+    EV_ARGS_REGSTATE* args = new EV_ARGS_REGSTATE;
+    ev.type = EVENT_REGSTATE;
+    ev.acct = this;
+    ev.args = reinterpret_cast<void*>(args);
+
+    args->active = ai.regIsActive;
+    args->statusCode = prm.code;
+
+    ENQUEUE_EVENT(ev);
+  }
 
   virtual void onIncomingCall(OnIncomingCallParam &iprm) {
     SIPSTERCall *call = new SIPSTERCall(*this, iprm.callId);
@@ -811,9 +836,30 @@ void dumb_cb(uv_async_t* handle, int status) {
                                           ->NewInstance(1, new_call_args);
         SIPSTERAccount* acct = ev.acct;
         SIPSTERCall* call = ev.call;
-        CallInfo ci = call->getInfo();
         Handle<Value> emit_argv[3] = { INCALL_call_symbol, obj, call_obj };
         call->emit->Call(acct->handle_, 3, emit_argv);
+        delete args;
+      }
+      break;
+      case EVENT_REGSTATE: {
+        EV_ARGS_REGSTATE* args = reinterpret_cast<EV_ARGS_REGSTATE*>(ev.args);
+        SIPSTERAccount* acct = ev.acct;
+        Handle<Value> emit_argv[1] = {
+          args->active
+          ? REGSTATE_registered_symbol
+          : REGSTATE_unregistered_symbol
+        };
+        acct->emit->Call(acct->handle_, 1, emit_argv);
+        Handle<Value> emit_catchall_argv[N_REGSTATE_FIELDS + 1] = {
+          CALLSTATE_state_symbol,
+#define X(kind, ctype, name, v8type, valconv) \
+          v8type::New(args->valconv),
+          REGSTATE_FIELDS
+#undef X
+        };
+        acct->emit->Call(acct->handle_,
+                         N_REGSTATE_FIELDS + 1,
+                         emit_catchall_argv);
         delete args;
       }
       break;

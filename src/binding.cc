@@ -583,7 +583,7 @@ public:
       try {
         call->dialDtmf(string(*String::AsciiValue(args[0]->ToString())));
       } catch(Error& err) {
-        string errstr = "Call.update() error: " + err.info();
+        string errstr = "Call.dialDtmf() error: " + err.info();
         return ThrowException(Exception::Error(String::New(errstr.c_str())));
       }
     } else {

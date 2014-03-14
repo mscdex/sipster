@@ -461,12 +461,13 @@ public:
     }
 
     call->Wrap(args.This());
+    call->handle_->SetPointerInInternalField(0, call);
 
     call->emit = Persistent<Function>::New(
       Local<Function>::Cast(call->handle_->Get(emit_symbol))
     );
 
-    return args.This();
+    return call->handle_;
   }
 
   static Handle<Value> Answer(const Arguments& args) {

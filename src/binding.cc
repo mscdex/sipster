@@ -1067,6 +1067,132 @@ void dumb_cb(uv_async_t* handle, int status) {
 
 // static methods ==============================================================
 
+static Handle<Value> CreateRecorder(const Arguments& args) {
+  HandleScope scope;
+
+  string dest;
+  unsigned fmt = PJMEDIA_FILE_WRITE_ULAW;
+  pj_ssize_t max_size = 0;
+  if (args.Length() > 0 && args[0]->IsString()) {
+    dest = string(*String::AsciiValue(args[0]->ToString()));
+    if (args.Length() > 1 && args[1]->IsString()) {
+      const char* fmt_str = *String::AsciiValue(args[1]->ToString());
+      if (strcasecmp(fmt_str, "pcm") == 0)
+        fmt = PJMEDIA_FILE_WRITE_PCM;
+      else if (strcasecmp(fmt_str, "alaw") == 0)
+        fmt = PJMEDIA_FILE_WRITE_ALAW;
+      else {
+        return ThrowException(
+          Exception::Error(String::New("Invalid media format"))
+        );
+      }
+    }
+    if (args.Length() > 2 && args[2]->IsInt32()) {
+      pj_ssize_t size = static_cast<pj_ssize_t>(args[2]->Int32Value());
+      if (size >= -1)
+        max_size = size;
+    }
+  } else {
+    return ThrowException(
+      Exception::Error(String::New("Missing destination filename"))
+    );
+  }
+
+  AudioMediaRecorder* recorder = new AudioMediaRecorder();
+  try {
+    recorder->createRecorder(dest, 0, max_size, fmt);
+  } catch(Error& err) {
+    delete recorder;
+    string errstr = "recorder->createRecorder() error: " + err.info();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
+  }
+
+  Local<Object> med_obj;
+  med_obj = SIPSTERMedia_constructor->GetFunction()
+                                    ->NewInstance(0, NULL);
+  SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
+  med->media = recorder;
+
+  return scope.Close(med_obj);
+}
+
+static Handle<Value> CreatePlayer(const Arguments& args) {
+  HandleScope scope;
+
+  string src;
+  unsigned opts = 0;
+  if (args.Length() > 0 && args[0]->IsString()) {
+    src = string(*String::AsciiValue(args[0]->ToString()));
+    if (args.Length() > 1 && args[1]->IsBoolean() && args[1]->BooleanValue())
+      opts = PJMEDIA_FILE_NO_LOOP;
+  } else {
+    return ThrowException(
+      Exception::Error(String::New("Missing source filename"))
+    );
+  }
+
+  AudioMediaPlayer* player = new AudioMediaPlayer();
+  try {
+    player->createPlayer(src, opts);
+  } catch(Error& err) {
+    delete player;
+    string errstr = "player->createPlayer() error: " + err.info();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
+  }
+
+  Local<Object> med_obj;
+  med_obj = SIPSTERMedia_constructor->GetFunction()
+                                    ->NewInstance(0, NULL);
+  SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
+  med->media = player;
+
+  return scope.Close(med_obj);
+}
+
+static Handle<Value> CreatePlaylist(const Arguments& args) {
+  HandleScope scope;
+
+  unsigned opts = 0;
+  vector<string> playlist;
+  if (args.Length() > 0 && args[0]->IsArray()) {
+    const Local<Array> arr_obj = Local<Array>::Cast(args[0]);
+    const uint32_t arr_length = arr_obj->Length();
+    if (arr_length == 0) {
+      return ThrowException(
+        Exception::Error(String::New("Nothing to add to playlist"))
+      );
+    }
+    playlist.reserve(arr_length);
+    for (uint32_t i = 0; i < arr_length; ++i) {
+      playlist.push_back(string(*String::AsciiValue(arr_obj->Get(i)
+                                                           ->ToString())));
+    }
+    if (args.Length() > 1 && args[1]->IsBoolean() && args[1]->BooleanValue())
+      opts = PJMEDIA_FILE_NO_LOOP;
+  } else {
+    return ThrowException(
+      Exception::Error(String::New("Missing source filenames"))
+    );
+  }
+
+  AudioMediaPlayer* player = new AudioMediaPlayer();
+  try {
+    player->createPlaylist(playlist, "", opts);
+  } catch(Error& err) {
+    delete player;
+    string errstr = "player->createPlayer() error: " + err.info();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
+  }
+
+  Local<Object> med_obj;
+  med_obj = SIPSTERMedia_constructor->GetFunction()
+                                    ->NewInstance(0, NULL);
+  SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
+  med->media = player;
+
+  return scope.Close(med_obj);
+}
+
 static Handle<Value> EPVersion(const Arguments& args) {
   HandleScope scope;
 
@@ -1443,6 +1569,13 @@ extern "C" {
                 FunctionTemplate::New(EPTransportClose)->GetFunction());
     target->Set(String::NewSymbol("transportGetInfo"),
                 FunctionTemplate::New(EPTransportGetInfo)->GetFunction());
+
+    target->Set(String::NewSymbol("createRecorder"),
+                FunctionTemplate::New(CreateRecorder)->GetFunction());
+    target->Set(String::NewSymbol("createPlayer"),
+                FunctionTemplate::New(CreatePlayer)->GetFunction());
+    target->Set(String::NewSymbol("createPlaylist"),
+                FunctionTemplate::New(CreatePlaylist)->GetFunction());
   }
 
   NODE_MODULE(sipster, init);

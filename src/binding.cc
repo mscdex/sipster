@@ -131,8 +131,9 @@ struct EV_ARGS_CALLDTMF {
 #define EVENT_TYPES                                                 \
   X(INCALL)                                                         \
   X(CALLSTATE)                                                      \
-  X(REGSTATE)
   X(CALLDTMF)                                                       \
+  X(REGSTATE)                                                       \
+  X(CALLMEDIA)
 #define EVENT_SYMBOLS                                               \
   X(INCALL, call)                                                   \
   X(CALLSTATE, calling)                                             \
@@ -145,7 +146,8 @@ struct EV_ARGS_CALLDTMF {
   X(CALLDTMF, dtmf)                                                 \
   X(REGSTATE, registered)                                           \
   X(REGSTATE, unregistered)                                         \
-  X(REGSTATE, state)
+  X(REGSTATE, state)                                                \
+  X(CALLMEDIA, media)
 
 // start generic event-related definitions =====================================
 #define X(kind, literal)                                            \
@@ -179,8 +181,127 @@ static EpConfig ep_cfg;
 
 static Persistent<FunctionTemplate> SIPSTERCall_constructor;
 static Persistent<FunctionTemplate> SIPSTERAccount_constructor;
+static Persistent<FunctionTemplate> SIPSTERMedia_constructor;
 static Persistent<String> emit_symbol;
 static uv_async_t dumb;
+
+class SIPSTERMedia : public ObjectWrap {
+public:
+  Persistent<Function> emit;
+  AudioMedia* media;
+
+  SIPSTERMedia() : media(NULL) {}
+  ~SIPSTERMedia() {
+    emit.Dispose();
+    emit.Clear();
+    if (media) {
+      delete media;
+      media = NULL;
+    }
+  }
+
+  static Handle<Value> New(const Arguments& args) {
+    HandleScope scope;
+
+    if (!args.IsConstructCall()) {
+      return ThrowException(Exception::TypeError(
+        String::New("Use `new` to create instances of this object."))
+      );
+    }
+
+    SIPSTERMedia* med = new SIPSTERMedia();
+
+    med->Wrap(args.This());
+
+    med->emit = Persistent<Function>::New(
+      Local<Function>::Cast(med->handle_->Get(emit_symbol))
+    );
+
+    return args.This();
+  }
+
+  static Handle<Value> StartTransmit(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERMedia *src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+    if (args.Length() == 0 || !SIPSTERMedia_constructor->HasInstance(args[0])) {
+      return ThrowException(Exception::TypeError(
+        String::New("Expected Media object"))
+      );
+    }
+    Local<Object> inst = Local<Object>(Object::Cast(*args[0]));
+    SIPSTERMedia *dest = ObjectWrap::Unwrap<SIPSTERMedia>(inst);
+
+    if (!src->media) {
+      return ThrowException(Exception::TypeError(
+        String::New("Invalid source"))
+      );
+    } else if (!dest->media) {
+      return ThrowException(Exception::TypeError(
+        String::New("Invalid destination"))
+      );
+    }
+
+    try {
+      src->media->startTransmit(*dest->media);
+    } catch(Error& err) {
+      string errstr = "AudioMedia.startTransmit() error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> StopTransmit(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERMedia *src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+    if (args.Length() == 0 || !SIPSTERMedia_constructor->HasInstance(args[0])) {
+      return ThrowException(Exception::TypeError(
+        String::New("Expected Media object"))
+      );
+    }
+    Local<Object> inst = Local<Object>(Object::Cast(*args[0]));
+    SIPSTERMedia *dest = ObjectWrap::Unwrap<SIPSTERMedia>(inst);
+
+    if (!src->media) {
+      return ThrowException(Exception::TypeError(
+        String::New("Invalid source"))
+      );
+    } else if (!dest->media) {
+      return ThrowException(Exception::TypeError(
+        String::New("Invalid destination"))
+      );
+    }
+
+    try {
+      src->media->stopTransmit(*dest->media);
+    } catch(Error& err) {
+      string errstr = "AudioMedia.stopTransmit() error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return Undefined();
+  }
+
+  static void Initialize(Handle<Object> target) {
+    HandleScope scope;
+
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
+    Local<String> name = String::NewSymbol("Media");
+
+    SIPSTERMedia_constructor = Persistent<FunctionTemplate>::New(tpl);
+    SIPSTERMedia_constructor->InstanceTemplate()->SetInternalFieldCount(1);
+    SIPSTERMedia_constructor->SetClassName(name);
+
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERMedia_constructor,
+                              "startTransmitTo",
+                              StartTransmit);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERMedia_constructor,
+                              "stopTransmitTo",
+                              StopTransmit);
+
+    target->Set(name, SIPSTERMedia_constructor->GetFunction());
+  }
+};
 
 class SIPSTERCall : public Call, public ObjectWrap {
 public:
@@ -197,6 +318,13 @@ public:
     uv_mutex_lock(&async_mutex);
     uv_unref(reinterpret_cast<uv_handle_t*>(&dumb));
     uv_mutex_unlock(&async_mutex);
+  }
+
+  void onCallMediaState(OnCallMediaStateParam &prm) {
+    SETUP_EVENT_NOARGS(CALLMEDIA);
+    ev.call = this;
+
+    ENQUEUE_EVENT(ev);
   }
 
   virtual void onCallState(OnCallStateParam &prm) {
@@ -894,6 +1022,30 @@ void dumb_cb(uv_async_t* handle, int status) {
         delete args;
       }
       break;
+      case EVENT_CALLMEDIA: {
+        HandleScope scope;
+        SIPSTERCall* call = ev.call;
+
+        Local<Array> medias = Array::New();
+        CallInfo ci = call->getInfo();
+        AudioMedia* media = NULL;
+        for (unsigned i = 0, m = 0; i < ci.media.size(); ++i) {
+          if (ci.media[i].type==PJMEDIA_TYPE_AUDIO
+              && (media = static_cast<AudioMedia*>(call->getMedia(i)))) {
+            Local<Object> med_obj;
+            med_obj = SIPSTERMedia_constructor->GetFunction()
+                                              ->NewInstance(0, NULL);
+            SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
+            med->media = media;
+            medias->Set(m++, med_obj);
+          }
+        }
+        if (medias->Length() > 0) {
+          Handle<Value> emit_argv[2] = { ev_CALLMEDIA_media_symbol, medias };
+          call->emit->Call(call->handle_, 2, emit_argv);
+        }
+      }
+      break;
       case EVENT_CALLDTMF: {
         HandleScope scope;
         EV_ARGS_CALLDTMF* args = reinterpret_cast<EV_ARGS_CALLDTMF*>(ev.args);
@@ -1267,6 +1419,7 @@ extern "C" {
 
     SIPSTERAccount::Initialize(target);
     SIPSTERCall::Initialize(target);
+    SIPSTERMedia::Initialize(target);
 
     target->Set(String::NewSymbol("version"),
                 FunctionTemplate::New(EPVersion)->GetFunction());

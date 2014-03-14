@@ -112,12 +112,12 @@ struct EV_ARGS_CALLSTATE {
 // =============================================================================
 
 // DTMF event ==================================================================
-#define N_DTMF_FIELDS 2
-#define DTMF_FIELDS                                                 \
-  X(DTMF, string, digit, String, digit.c_str())
-struct EV_ARGS_DTMF {
+#define N_CALLDTMF_FIELDS 2
+#define CALLDTMF_FIELDS                                             \
+  X(CALLDTMF, string, digit, String, digit.c_str())
+struct EV_ARGS_CALLDTMF {
 #define X(kind, ctype, name, v8type, valconv) ctype name;
-  DTMF_FIELDS
+  CALLDTMF_FIELDS
 #undef X
 };
 // =============================================================================
@@ -125,14 +125,14 @@ struct EV_ARGS_DTMF {
 #define X(kind, ctype, name, v8type, valconv)                       \
   static Persistent<String> kind##_##name##_symbol;
   INCALL_FIELDS
-  DTMF_FIELDS
+  CALLDTMF_FIELDS
   REGSTATE_FIELDS
 #undef X
 #define EVENT_TYPES                                                 \
   X(INCALL)                                                         \
   X(CALLSTATE)                                                      \
-  X(DTMF)                                                           \
   X(REGSTATE)
+  X(CALLDTMF)                                                       \
 #define EVENT_SYMBOLS                                               \
   X(INCALL, call)                                                   \
   X(CALLSTATE, calling)                                             \
@@ -142,7 +142,7 @@ struct EV_ARGS_DTMF {
   X(CALLSTATE, confirmed)                                           \
   X(CALLSTATE, disconnected)                                        \
   X(CALLSTATE, state)                                               \
-  X(DTMF, dtmf)                                                     \
+  X(CALLDTMF, dtmf)                                                 \
   X(REGSTATE, registered)                                           \
   X(REGSTATE, unregistered)                                         \
   X(REGSTATE, state)
@@ -888,8 +888,9 @@ void dumb_cb(uv_async_t* handle, int status) {
         delete args;
       }
       break;
-      case EVENT_DTMF: {
-        EV_ARGS_DTMF* args = reinterpret_cast<EV_ARGS_DTMF*>(ev.args);
+      case EVENT_CALLDTMF: {
+        HandleScope scope;
+        EV_ARGS_CALLDTMF* args = reinterpret_cast<EV_ARGS_CALLDTMF*>(ev.args);
         SIPSTERCall* call = ev.call;
         // TODO: make a symbol for each DTMF digit and use that instead?
         Local<Value> dtmf_char = String::New(args->digit.c_str());
@@ -1247,7 +1248,7 @@ extern "C" {
 #define X(kind, ctype, name, v8type, valconv)              \
     kind##_##name##_symbol = NODE_PSYMBOL(#name);
   INCALL_FIELDS
-  DTMF_FIELDS
+  CALLDTMF_FIELDS
 #undef X
 
     uv_async_init(uv_default_loop(), &dumb, dumb_cb);

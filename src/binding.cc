@@ -203,7 +203,7 @@ static uv_mutex_t async_mutex;
 // =============================================================================
 
 // start PJSUA2-specific definitions ===========================================
-static Endpoint *ep = new Endpoint;
+static Endpoint* ep = new Endpoint;
 static bool ep_init = false;
 static bool ep_create = false;
 static bool ep_start = false;
@@ -269,14 +269,14 @@ public:
 
   static Handle<Value> StartTransmit(const Arguments& args) {
     HandleScope scope;
-    SIPSTERMedia *src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+    SIPSTERMedia* src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
     if (args.Length() == 0 || !SIPSTERMedia_constructor->HasInstance(args[0])) {
       return ThrowException(Exception::TypeError(
         String::New("Expected Media object"))
       );
     }
     Local<Object> inst = Local<Object>(Object::Cast(*args[0]));
-    SIPSTERMedia *dest = ObjectWrap::Unwrap<SIPSTERMedia>(inst);
+    SIPSTERMedia* dest = ObjectWrap::Unwrap<SIPSTERMedia>(inst);
 
     if (!src->media) {
       return ThrowException(Exception::TypeError(
@@ -300,14 +300,14 @@ public:
 
   static Handle<Value> StopTransmit(const Arguments& args) {
     HandleScope scope;
-    SIPSTERMedia *src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+    SIPSTERMedia* src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
     if (args.Length() == 0 || !SIPSTERMedia_constructor->HasInstance(args[0])) {
       return ThrowException(Exception::TypeError(
         String::New("Expected Media object"))
       );
     }
     Local<Object> inst = Local<Object>(Object::Cast(*args[0]));
-    SIPSTERMedia *dest = ObjectWrap::Unwrap<SIPSTERMedia>(inst);
+    SIPSTERMedia* dest = ObjectWrap::Unwrap<SIPSTERMedia>(inst);
 
     if (!src->media) {
       return ThrowException(Exception::TypeError(
@@ -409,7 +409,7 @@ public:
     if (args.Length() > 0) {
       if (SIPSTERAccount_constructor->HasInstance(args[0])) {
         Local<Object> acct_inst = Local<Object>(Object::Cast(*args[0]));
-        Account *acct = ObjectWrap::Unwrap<Account>(acct_inst);
+        Account* acct = ObjectWrap::Unwrap<Account>(acct_inst);
         call = new SIPSTERCall(*acct);
       } else
         call = static_cast<SIPSTERCall*>(External::Unwrap(args[0]));
@@ -430,7 +430,7 @@ public:
 
   static Handle<Value> Answer(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     CallOpParam prm;
     if (args.Length() > 0 && args[0]->IsUint32()) {
@@ -452,7 +452,7 @@ public:
 
   static Handle<Value> Hangup(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     CallOpParam prm;
     if (args.Length() > 0 && args[0]->IsUint32()) {
@@ -473,7 +473,7 @@ public:
 
   static Handle<Value> SetHold(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     CallOpParam prm;
     if (args.Length() > 0 && args[0]->IsUint32()) {
@@ -494,7 +494,7 @@ public:
 
   static Handle<Value> Reinvite(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     CallOpParam prm;
     if (args.Length() > 0 && args[0]->IsUint32()) {
@@ -515,7 +515,7 @@ public:
 
   static Handle<Value> Update(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     CallOpParam prm;
     if (args.Length() > 0 && args[0]->IsUint32()) {
@@ -536,7 +536,7 @@ public:
 
   static Handle<Value> DialDtmf(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     if (args.Length() > 0 && args[0]->IsString()) {
       try {
@@ -556,7 +556,7 @@ public:
 
   static Handle<Value> Transfer(const Arguments& args) {
     HandleScope scope;
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
 
     string dest;
     CallOpParam prm;
@@ -628,7 +628,7 @@ public:
   }
 
   virtual void onIncomingCall(OnIncomingCallParam &iprm) {
-    SIPSTERCall *call = new SIPSTERCall(*this, iprm.callId);
+    SIPSTERCall* call = new SIPSTERCall(*this, iprm.callId);
     CallInfo ci = call->getInfo();
 
     SETUP_EVENT(INCALL);
@@ -950,7 +950,7 @@ public:
 
     Handle<Value> new_call_args[1] = { args.This() };
     Local<Object> call_obj = SIPSTERCall_constructor->GetFunction()->NewInstance(1, new_call_args);
-    SIPSTERCall *call = ObjectWrap::Unwrap<SIPSTERCall>(call_obj);
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(call_obj);
 
     try {
       call->makeCall(dest, prm);

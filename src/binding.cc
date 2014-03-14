@@ -1,7 +1,6 @@
 #include <node.h>
 #include <string.h>
 #include <strings.h>
-#include <queue>
 #include <pjsua2.hpp>
 
 using namespace std;

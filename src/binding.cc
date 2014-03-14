@@ -816,6 +816,7 @@ void dumb_cb(uv_async_t* handle, int status) {
     TryCatch try_catch;
     switch (ev.type) {
       case EVENT_INCALL: {
+        HandleScope scope;
         Local<Object> obj = Object::New();
         EV_ARGS_INCALL* args = reinterpret_cast<EV_ARGS_INCALL*>(ev.args);
 #define X(kind, ctype, name, v8type, valconv) \
@@ -834,6 +835,7 @@ void dumb_cb(uv_async_t* handle, int status) {
       }
       break;
       case EVENT_REGSTATE: {
+        HandleScope scope;
         EV_ARGS_REGSTATE* args = reinterpret_cast<EV_ARGS_REGSTATE*>(ev.args);
         SIPSTERAccount* acct = ev.acct;
         Handle<Value> emit_argv[1] = {
@@ -856,6 +858,7 @@ void dumb_cb(uv_async_t* handle, int status) {
       }
       break;
       case EVENT_CALLSTATE: {
+        HandleScope scope;
         EV_ARGS_CALLSTATE* args = reinterpret_cast<EV_ARGS_CALLSTATE*>(ev.args);
         Handle<Value> ev_name;
         switch (args->_state) {

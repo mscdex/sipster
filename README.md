@@ -52,8 +52,15 @@ acct.on('call', function(info, call) {
     console.log('=== DTMF digit pressed: ' + digit);
   });
 
-  // answer the call with a 200 status code
-  call.answer(200);
+  // audio stream(s) available
+  call.on('media', function(media) {
+    // play looping .wav file to the first audio stream
+    var player = sipster.createPlayer('sound.wav');
+    player.startTransmitTo(media[0]);
+  });
+
+  // answer the call (with default 200 OK)
+  call.answer();
 });
 
 // finalize the initialization phase ...

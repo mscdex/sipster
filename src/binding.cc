@@ -87,7 +87,6 @@ struct EV_ARGS_REGSTATE {
 // incoming call event =========================================================
 #define N_INCALL_FIELDS 7
 #define INCALL_FIELDS                                               \
-  X(INCALL, int, _id, Integer, _id)                                 \
   X(INCALL, string, srcAddress, String, srcAddress.c_str())         \
   X(INCALL, string, localUri, String, localUri.c_str())             \
   X(INCALL, string, localContact, String, localContact.c_str())     \
@@ -234,17 +233,12 @@ public:
 
     SIPSTERCall *call = NULL;
     if (args.Length() > 0) {
-      if (args[0]->IsInt32())
-        call = static_cast<SIPSTERCall*>(Call::lookup(args[0]->Int32Value()));
-      else if (SIPSTERAccount_constructor->HasInstance(args[0])) {
+      if (SIPSTERAccount_constructor->HasInstance(args[0])) {
         Local<Object> acct_inst = Local<Object>(Object::Cast(*args[0]));
         Account *acct = ObjectWrap::Unwrap<Account>(acct_inst);
         call = new SIPSTERCall(*acct);
-      } else {
-        return ThrowException(Exception::TypeError(
-          String::New("Expected callId or Account argument"))
-        );
-      }
+      } else
+        call = static_cast<SIPSTERCall*>(External::Unwrap(args[0]));
     } else {
       return ThrowException(Exception::TypeError(
         String::New("Expected callId or Account argument"))
@@ -827,13 +821,12 @@ void dumb_cb(uv_async_t* handle, int status) {
         obj->Set(kind##_##name##_symbol, v8type::New(args->valconv));
         INCALL_FIELDS
 #undef X
-        Local<Value> new_call_args[1] = { Integer::New(args->_id) };
+        SIPSTERAccount* acct = ev.acct;
+        SIPSTERCall* call = ev.call;
+        Local<Value> new_call_args[1] = { External::Wrap(call) };
         Local<Object> call_obj;
         call_obj = SIPSTERCall_constructor->GetFunction()
                                           ->NewInstance(1, new_call_args);
-        SIPSTERAccount* acct = ev.acct;
-        SIPSTERCall* call = ev.call;
-        Handle<Value> emit_argv[3] = { INCALL_call_symbol, obj, call_obj };
         call->emit->Call(acct->handle_, 3, emit_argv);
         delete args;
       }

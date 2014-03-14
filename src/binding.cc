@@ -1229,7 +1229,7 @@ static Handle<Value> CreateRecorder(const Arguments& args) {
         fmt = PJMEDIA_FILE_WRITE_PCM;
       else if (strcasecmp(fmt_str, "alaw") == 0)
         fmt = PJMEDIA_FILE_WRITE_ALAW;
-      else {
+      else if (strcasecmp(fmt_str, "ulaw") != 0) {
         return ThrowException(
           Exception::Error(String::New("Invalid media format"))
         );

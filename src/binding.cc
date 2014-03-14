@@ -1256,6 +1256,8 @@ static Handle<Value> EPInit(const Arguments& args) {
     return Undefined();
   }
 
+  uv_async_init(uv_default_loop(), &dumb, dumb_cb);
+
   Endpoint::instance().audDevManager().setNullDev();
 
   if ((args.Length() == 1 && args[0]->IsBoolean() && args[0]->BooleanValue())
@@ -1538,7 +1540,6 @@ extern "C" {
   REGSTATE_FIELDS
 #undef X
 
-    uv_async_init(uv_default_loop(), &dumb, dumb_cb);
     uv_mutex_init(&event_mutex);
     uv_mutex_init(&async_mutex);
     emit_symbol = NODE_PSYMBOL("emit");

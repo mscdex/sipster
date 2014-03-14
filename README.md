@@ -8,7 +8,7 @@ Requirements
 ============
 
 * Non-Windows OS
-* [pjsip](http://www.pjsip.org/) -- v2.2 or newer
+* [pjsip](http://www.pjsip.org/) -- v2.2.1 or newer
 * [node.js](http://nodejs.org/) -- v0.10.0 or newer
 
 

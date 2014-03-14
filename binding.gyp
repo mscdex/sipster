@@ -8,7 +8,7 @@
       'conditions': [
         [ 'OS!="win"', {
           'cflags_cc': [
-            '<!@(pkg-config --atleast-version=2.2.0 libpjproject)',
+            '<!@(pkg-config --atleast-version=2.2.1 libpjproject)',
             '<!@(pkg-config --cflags libpjproject)',
             '-fexceptions',
           ],

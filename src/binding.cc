@@ -262,7 +262,8 @@ public:
       prm.statusCode = static_cast<pjsip_status_code>(args[0]->Int32Value());
       if (args.Length() > 1 && args[1]->IsString())
         prm.reason = string(*String::Utf8Value(args[1]->ToString()));
-    }
+    } else
+      prm.statusCode = PJSIP_SC_OK;
 
     try {
       call->answer(prm);

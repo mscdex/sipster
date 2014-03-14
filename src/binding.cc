@@ -230,7 +230,7 @@ public:
       );
     }
 
-    SIPSTERCall *call = NULL;
+    SIPSTERCall* call = NULL;
     if (args.Length() > 0) {
       if (SIPSTERAccount_constructor->HasInstance(args[0])) {
         Local<Object> acct_inst = Local<Object>(Object::Cast(*args[0]));
@@ -478,7 +478,7 @@ public:
       );
     }
 
-    SIPSTERAccount *acct = new SIPSTERAccount();
+    SIPSTERAccount* acct = new SIPSTERAccount();
 
     AccountConfig acct_cfg;
     string errstr;
@@ -502,7 +502,7 @@ public:
           const uint32_t hdr_length = hdr_props->Length();
           if (hdr_length > 0) {
             vector<SipHeader> sipheaders;
-            for (uint32_t i = 0 ; i < hdr_length ; ++i) {
+            for (uint32_t i = 0; i < hdr_length; ++i) {
               const Local<Value> key = hdr_props->Get(i);
               const Local<Value> value = hdr_obj->Get(key);
               SipHeader hdr;
@@ -533,7 +533,7 @@ public:
           const uint32_t arr_length = arr_obj->Length();
           if (arr_length > 0) {
             vector<AuthCredInfo> creds;
-            for (uint32_t i = 0 ; i < arr_length ; ++i) {
+            for (uint32_t i = 0; i < arr_length; ++i) {
               const Local<Value> cred_value = arr_obj->Get(i);
 
               if (cred_value->IsObject()) {
@@ -543,7 +543,7 @@ public:
                 if (auth_length > 0) {
                   AuthCredInfo credinfo;
                   credinfo.dataType = -1;
-                  for (uint32_t i = 0 ; i < auth_length ; ++i) {
+                  for (uint32_t i = 0; i < auth_length; ++i) {
                     const Local<Value> key = auth_props->Get(i);
                     const Local<Value> value = auth_obj->Get(key);
                     const string keystr(*String::AsciiValue(key->ToString()));
@@ -581,7 +581,7 @@ public:
           const uint32_t arr_length = arr_obj->Length();
           if (arr_length > 0) {
             vector<string> proxies;
-            for (uint32_t i = 0 ; i < arr_length ; ++i) {
+            for (uint32_t i = 0; i < arr_length; ++i) {
               const Local<Value> value = arr_obj->Get(i);
               proxies.push_back(string(*String::AsciiValue(value->ToString())));
             }
@@ -618,7 +618,7 @@ public:
           const uint32_t hdr_length = hdr_props->Length();
           if (hdr_length > 0) {
             vector<SipHeader> sipheaders;
-            for (uint32_t i = 0 ; i < hdr_length ; ++i) {
+            for (uint32_t i = 0; i < hdr_length; ++i) {
               const Local<Value> key = hdr_props->Get(i);
               const Local<Value> value = hdr_obj->Get(key);
               SipHeader hdr;

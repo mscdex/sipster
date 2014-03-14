@@ -112,7 +112,7 @@ struct EV_ARGS_CALLSTATE {
 // =============================================================================
 
 // DTMF event ==================================================================
-#define N_CALLDTMF_FIELDS 2
+#define N_CALLDTMF_FIELDS 1
 #define CALLDTMF_FIELDS                                             \
   X(CALLDTMF, string, digit, String, digit.c_str())
 struct EV_ARGS_CALLDTMF {

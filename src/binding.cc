@@ -115,12 +115,28 @@ struct EV_ARGS_CALLSTATE {
 // DTMF event ==================================================================
 #define N_CALLDTMF_FIELDS 1
 #define CALLDTMF_FIELDS                                             \
-  X(CALLDTMF, string, digit, String, digit.c_str())
+  X(CALLDTMF, char, digit, String, digit[0])
 struct EV_ARGS_CALLDTMF {
 #define X(kind, ctype, name, v8type, valconv) ctype name;
   CALLDTMF_FIELDS
 #undef X
 };
+static Persistent<String> CALLDTMF_DTMF0_symbol;
+static Persistent<String> CALLDTMF_DTMF1_symbol;
+static Persistent<String> CALLDTMF_DTMF2_symbol;
+static Persistent<String> CALLDTMF_DTMF3_symbol;
+static Persistent<String> CALLDTMF_DTMF4_symbol;
+static Persistent<String> CALLDTMF_DTMF5_symbol;
+static Persistent<String> CALLDTMF_DTMF6_symbol;
+static Persistent<String> CALLDTMF_DTMF7_symbol;
+static Persistent<String> CALLDTMF_DTMF8_symbol;
+static Persistent<String> CALLDTMF_DTMF9_symbol;
+static Persistent<String> CALLDTMF_DTMFSTAR_symbol;
+static Persistent<String> CALLDTMF_DTMFPOUND_symbol;
+static Persistent<String> CALLDTMF_DTMFA_symbol;
+static Persistent<String> CALLDTMF_DTMFB_symbol;
+static Persistent<String> CALLDTMF_DTMFC_symbol;
+static Persistent<String> CALLDTMF_DTMFD_symbol;
 // =============================================================================
 
 // AudioMediaPlayer EOF event ==================================================
@@ -375,7 +391,7 @@ public:
     SETUP_EVENT(CALLDTMF);
     ev.call = this;
 
-    args->digit = prm.digit;
+    args->digit = prm.digit[0];
 
     ENQUEUE_EVENT(ev);
   }
@@ -1081,8 +1097,60 @@ void dumb_cb(uv_async_t* handle, int status) {
         HandleScope scope;
         EV_ARGS_CALLDTMF* args = reinterpret_cast<EV_ARGS_CALLDTMF*>(ev.args);
         SIPSTERCall* call = ev.call;
-        // TODO: make a symbol for each DTMF digit and use that instead?
-        Local<Value> dtmf_char = String::New(args->digit.c_str());
+        Handle<Value> dtmf_char;
+        switch (args->digit) {
+          case '0':
+            dtmf_char = CALLDTMF_DTMF0_symbol;
+          break;
+          case '1':
+            dtmf_char = CALLDTMF_DTMF1_symbol;
+          break;
+          case '2':
+            dtmf_char = CALLDTMF_DTMF2_symbol;
+          break;
+          case '3':
+            dtmf_char = CALLDTMF_DTMF3_symbol;
+          break;
+          case '4':
+            dtmf_char = CALLDTMF_DTMF4_symbol;
+          break;
+          case '5':
+            dtmf_char = CALLDTMF_DTMF5_symbol;
+          break;
+          case '6':
+            dtmf_char = CALLDTMF_DTMF6_symbol;
+          break;
+          case '7':
+            dtmf_char = CALLDTMF_DTMF7_symbol;
+          break;
+          case '8':
+            dtmf_char = CALLDTMF_DTMF8_symbol;
+          break;
+          case '9':
+            dtmf_char = CALLDTMF_DTMF9_symbol;
+          break;
+          case '*':
+            dtmf_char = CALLDTMF_DTMFSTAR_symbol;
+          break;
+          case '#':
+            dtmf_char = CALLDTMF_DTMFPOUND_symbol;
+          break;
+          case 'A':
+            dtmf_char = CALLDTMF_DTMFA_symbol;
+          break;
+          case 'B':
+            dtmf_char = CALLDTMF_DTMFB_symbol;
+          break;
+          case 'C':
+            dtmf_char = CALLDTMF_DTMFC_symbol;
+          break;
+          case 'D':
+            dtmf_char = CALLDTMF_DTMFD_symbol;
+          break;
+          default:
+            const char digit[1] = { args->digit };
+            dtmf_char = String::New(digit, 1);
+        }
         Handle<Value> emit_argv[2] = { ev_CALLDTMF_dtmf_symbol, dtmf_char };
         call->emit->Call(call->handle_, 2, emit_argv);
         delete args;
@@ -1575,9 +1643,26 @@ extern "C" {
   REGSTATE_FIELDS
 #undef X
 
+    CALLDTMF_DTMF0_symbol = NODE_PSYMBOL("0");
+    CALLDTMF_DTMF1_symbol = NODE_PSYMBOL("1");
+    CALLDTMF_DTMF2_symbol = NODE_PSYMBOL("2");
+    CALLDTMF_DTMF3_symbol = NODE_PSYMBOL("3");
+    CALLDTMF_DTMF4_symbol = NODE_PSYMBOL("4");
+    CALLDTMF_DTMF5_symbol = NODE_PSYMBOL("5");
+    CALLDTMF_DTMF6_symbol = NODE_PSYMBOL("6");
+    CALLDTMF_DTMF7_symbol = NODE_PSYMBOL("7");
+    CALLDTMF_DTMF8_symbol = NODE_PSYMBOL("8");
+    CALLDTMF_DTMF9_symbol = NODE_PSYMBOL("9");
+    CALLDTMF_DTMFSTAR_symbol = NODE_PSYMBOL("*");
+    CALLDTMF_DTMFPOUND_symbol = NODE_PSYMBOL("#");
+    CALLDTMF_DTMFA_symbol = NODE_PSYMBOL("A");
+    CALLDTMF_DTMFB_symbol = NODE_PSYMBOL("B");
+    CALLDTMF_DTMFC_symbol = NODE_PSYMBOL("C");
+    CALLDTMF_DTMFD_symbol = NODE_PSYMBOL("D");
+    emit_symbol = NODE_PSYMBOL("emit");
+
     uv_mutex_init(&event_mutex);
     uv_mutex_init(&async_mutex);
-    emit_symbol = NODE_PSYMBOL("emit");
 
     SIPSTERAccount::Initialize(target);
     SIPSTERCall::Initialize(target);

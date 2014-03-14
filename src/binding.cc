@@ -1249,6 +1249,7 @@ extern "C" {
     kind##_##name##_symbol = NODE_PSYMBOL(#name);
   INCALL_FIELDS
   CALLDTMF_FIELDS
+  REGSTATE_FIELDS
 #undef X
 
     uv_async_init(uv_default_loop(), &dumb, dumb_cb);

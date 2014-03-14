@@ -175,6 +175,7 @@ static uv_mutex_t async_mutex;
 // start PJSUA2-specific definitions ===========================================
 static Endpoint *ep = new Endpoint;
 static bool ep_init = false;
+static bool ep_create = false;
 static bool ep_start = false;
 static EpConfig ep_cfg;
 // =============================================================================
@@ -1215,12 +1216,14 @@ static Handle<Value> EPInit(const Arguments& args) {
   if (ep_init)
     return ThrowException(Exception::Error(String::New("Already initialized")));
 
-  try {
-    ep->libCreate();
-  } catch(Error& err) {
-    errstr = "libCreate error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+  if (!ep_create) {
+    try {
+      ep->libCreate();
+      ep_create = true;
+    } catch(Error& err) {
+      errstr = "libCreate error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
   }
 
   /*if (args.Length() == 1 && args[0]->IsString()) {

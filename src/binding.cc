@@ -10,6 +10,7 @@ using namespace pj;
 
 class SIPSTERAccount;
 class SIPSTERCall;
+class SIPSTERMedia;
 
 #define JS2PJ_INT(js, prop, pj) do {                                \
   val = js->Get(String::New(#prop));                                \
@@ -122,6 +123,16 @@ struct EV_ARGS_CALLDTMF {
 };
 // =============================================================================
 
+// AudioMediaPlayer EOF event ==================================================
+/*#define N_PLAYEREOF_FIELDS 0
+#define CALLDTMF_FIELDS
+struct EV_ARGS_PLAYEREOF {
+#define X(kind, ctype, name, v8type, valconv) ctype name;
+  PLAYEREOF_FIELDS
+#undef X
+};*/
+// =============================================================================
+
 #define X(kind, ctype, name, v8type, valconv)                       \
   static Persistent<String> kind##_##name##_symbol;
   INCALL_FIELDS
@@ -133,7 +144,8 @@ struct EV_ARGS_CALLDTMF {
   X(CALLSTATE)                                                      \
   X(CALLDTMF)                                                       \
   X(REGSTATE)                                                       \
-  X(CALLMEDIA)
+  X(CALLMEDIA)                                                      \
+  X(PLAYEREOF)
 #define EVENT_SYMBOLS                                               \
   X(INCALL, call)                                                   \
   X(CALLSTATE, calling)                                             \
@@ -147,7 +159,8 @@ struct EV_ARGS_CALLDTMF {
   X(REGSTATE, registered)                                           \
   X(REGSTATE, unregistered)                                         \
   X(REGSTATE, state)                                                \
-  X(CALLMEDIA, media)
+  X(CALLMEDIA, media)                                               \
+  X(PLAYEREOF, eof)
 
 // start generic event-related definitions =====================================
 #define X(kind, literal)                                            \
@@ -165,6 +178,7 @@ struct SIPEventInfo {
   SIPEvent type;
   SIPSTERCall* call;
   SIPSTERAccount* acct;
+  SIPSTERMedia* media;
   void* args;
 };
 static list<SIPEventInfo> event_queue;
@@ -186,12 +200,28 @@ static Persistent<FunctionTemplate> SIPSTERMedia_constructor;
 static Persistent<String> emit_symbol;
 static uv_async_t dumb;
 
+class SIPSTERPlayer : public AudioMediaPlayer {
+public:
+  SIPSTERMedia* media;
+
+  SIPSTERPlayer() {}
+  ~SIPSTERPlayer() {}
+
+  virtual bool onEof() {
+    SETUP_EVENT_NOARGS(PLAYEREOF);
+    ev.media = media;
+
+    ENQUEUE_EVENT(ev);
+    return true;
+  }
+};
+
 class SIPSTERMedia : public ObjectWrap {
 public:
   Persistent<Function> emit;
   AudioMedia* media;
 
-  SIPSTERMedia() : media(NULL) {}
+  SIPSTERMedia() {}
   ~SIPSTERMedia() {
     emit.Dispose();
     emit.Clear();
@@ -1058,6 +1088,13 @@ void dumb_cb(uv_async_t* handle, int status) {
         delete args;
       }
       break;
+      case EVENT_PLAYEREOF: {
+        HandleScope scope;
+        SIPSTERMedia* media = ev.media;
+        Handle<Value> emit_argv[1] = { ev_PLAYEREOF_eof_symbol };
+        media->emit->Call(media->handle_, 1, emit_argv);
+      }
+      break;
     }
     if (try_catch.HasCaught())
       FatalException(try_catch);
@@ -1132,7 +1169,7 @@ static Handle<Value> CreatePlayer(const Arguments& args) {
     );
   }
 
-  AudioMediaPlayer* player = new AudioMediaPlayer();
+  SIPSTERPlayer* player = new SIPSTERPlayer();
   try {
     player->createPlayer(src, opts);
   } catch(Error& err) {
@@ -1146,6 +1183,7 @@ static Handle<Value> CreatePlayer(const Arguments& args) {
                                     ->NewInstance(0, NULL);
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = player;
+  player->media = med;
 
   return scope.Close(med_obj);
 }
@@ -1176,7 +1214,7 @@ static Handle<Value> CreatePlaylist(const Arguments& args) {
     );
   }
 
-  AudioMediaPlayer* player = new AudioMediaPlayer();
+  SIPSTERPlayer* player = new SIPSTERPlayer();
   try {
     player->createPlaylist(playlist, "", opts);
   } catch(Error& err) {
@@ -1190,6 +1228,7 @@ static Handle<Value> CreatePlaylist(const Arguments& args) {
                                     ->NewInstance(0, NULL);
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = player;
+  player->media = med;
 
   return scope.Close(med_obj);
 }

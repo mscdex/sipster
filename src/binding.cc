@@ -125,7 +125,6 @@ struct EV_ARGS_DTMF {
 #define X(kind, ctype, name, v8type, valconv)                       \
   static Persistent<String> kind##_##name##_symbol;
   INCALL_FIELDS
-  CALLSTATE_FIELDS
   DTMF_FIELDS
   REGSTATE_FIELDS
 #undef X
@@ -1247,7 +1246,6 @@ extern "C" {
 #define X(kind, ctype, name, v8type, valconv)              \
     kind##_##name##_symbol = NODE_PSYMBOL(#name);
   INCALL_FIELDS
-  CALLSTATE_FIELDS
   DTMF_FIELDS
 #undef X
 

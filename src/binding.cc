@@ -800,7 +800,6 @@ public:
 };
 
 // start event processing-related definitions ==================================
-static Persistent<Object> global_context;
 void dumb_cb(uv_async_t* handle, int status) {
   while (true) {
     uv_mutex_lock(&event_mutex);
@@ -1255,7 +1254,6 @@ extern "C" {
     uv_async_init(uv_default_loop(), &dumb, dumb_cb);
     uv_mutex_init(&event_mutex);
     uv_mutex_init(&async_mutex);
-    global_context = Persistent<Object>::New(Context::GetCurrent()->Global());
     emit_symbol = NODE_PSYMBOL("emit");
 
     SIPSTERAccount::Initialize(target);

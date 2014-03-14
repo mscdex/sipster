@@ -1254,9 +1254,8 @@ static Handle<Value> EPInit(const Arguments& args) {
     ep->libInit(ep_cfg);
     ep_init = true;
   } catch(Error& err) {
-    errstr = "libCreate error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+    errstr = "libInit error: " + err.info();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
 
   uv_async_init(uv_default_loop(), &dumb, dumb_cb);
@@ -1272,8 +1271,7 @@ static Handle<Value> EPInit(const Arguments& args) {
       ep_start = true;
     } catch(Error& err) {
       string errstr = "libStart error: " + err.info();
-      ThrowException(Exception::Error(String::New(errstr.c_str())));
-      return Undefined();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
     }
   }
   return Undefined();
@@ -1307,16 +1305,14 @@ static Handle<Value> EPGetConfig(const Arguments& args) {
     wdoc.writeObject(ep_cfg);
   } catch(Error& err) {
     errstr = "JsonDocument.writeObject(EpConfig) error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
 
   try {
     return scope.Close(String::New(wdoc.saveString().c_str()));
   } catch(Error& err) {
     errstr = "JsonDocument.saveString error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
 }
 
@@ -1348,8 +1344,7 @@ static Handle<Value> EPGetState(const Arguments& args) {
     return scope.Close(String::New(state.c_str()));
   } catch(Error& err) {
     string errstr = "libGetState error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
 }
 
@@ -1360,7 +1355,7 @@ static Handle<Value> EPHangupAllCalls(const Arguments& args) {
     ep->hangupAllCalls();
   } catch(Error& err) {
     string errstr = "hangupAllCalls error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
   return Undefined();
 }
@@ -1378,7 +1373,7 @@ static Handle<Value> EPTransportSetEnable(const Arguments& args) {
     ep->transportSetEnable(args[0]->Int32Value(), args[1]->BooleanValue());
   } catch(Error& err) {
     string errstr = "transportSetEnable error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
   return Undefined();
 }
@@ -1448,8 +1443,7 @@ static Handle<Value> EPTransportCreate(const Arguments& args) {
     tid = ep->transportCreate(transportType, tp_cfg);
   } catch(Error& err) {
     errstr = "transportCreate error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
 
   uv_mutex_lock(&async_mutex);
@@ -1468,7 +1462,7 @@ static Handle<Value> EPTransportClose(const Arguments& args) {
     uv_mutex_unlock(&async_mutex);
   } catch(Error& err) {
     string errstr = "transportClose error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
   return Undefined();
 }
@@ -1524,8 +1518,7 @@ static Handle<Value> EPTransportGetInfo(const Arguments& args) {
     return scope.Close(info);
   } catch(Error& err) {
     string errstr = "transportGetInfo error: " + err.info();
-    ThrowException(Exception::Error(String::New(errstr.c_str())));
-    return Undefined();
+    return ThrowException(Exception::Error(String::New(errstr.c_str())));
   }
 }
 

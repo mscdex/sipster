@@ -219,15 +219,23 @@ static uv_async_t dumb;
 class SIPSTERPlayer : public AudioMediaPlayer {
 public:
   SIPSTERMedia* media;
+  unsigned options;
+  bool skip;
 
-  SIPSTERPlayer() {}
+  SIPSTERPlayer() : skip(false) {}
   ~SIPSTERPlayer() {}
 
   virtual bool onEof() {
+    if (skip)
+      return false;
     SETUP_EVENT_NOARGS(PLAYEREOF);
     ev.media = media;
 
     ENQUEUE_EVENT(ev);
+    if (options & PJMEDIA_FILE_NO_LOOP) {
+      skip = true;
+      return false;
+    }
     return true;
   }
 };
@@ -1252,6 +1260,7 @@ static Handle<Value> CreatePlayer(const Arguments& args) {
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = player;
   player->media = med;
+  player->options = opts;
 
   return scope.Close(med_obj);
 }
@@ -1297,6 +1306,7 @@ static Handle<Value> CreatePlaylist(const Arguments& args) {
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = player;
   player->media = med;
+  player->options = opts;
 
   return scope.Close(med_obj);
 }

@@ -971,6 +971,8 @@ static Handle<Value> EPInit(const Arguments& args) {
     return Undefined();
   }
 
+  Endpoint::instance().audDevManager().setNullDev();
+
   if ((args.Length() == 1 && args[0]->IsBoolean() && args[0]->BooleanValue())
       || (args.Length() > 1 && args[1]->IsBoolean() && args[1]->BooleanValue())) {
     if (ep_start)

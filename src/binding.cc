@@ -1585,8 +1585,9 @@ static Handle<Value> EPTransportCreate(const Arguments& args) {
 # endif
 #endif
   else {
-    ThrowException(Exception::Error(String::New("Unsupported transport type")));
-    return Undefined();
+    return ThrowException(
+      Exception::Error(String::New("Unsupported transport type"))
+    );
   }*/
 
   int tid;

@@ -600,6 +600,7 @@ public:
       if (val->IsObject()) {
         AccountCallConfig callConfig = acct_cfg.callConfig;
         Local<Object> call_obj = val->ToObject();
+        (void)callConfig; // ignore compiler warning
         JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, callConfig);
         JS2PJ_ENUM(call_obj, prackUse, pjsua_100rel_use, callConfig);
         JS2PJ_ENUM(call_obj, timerUse, pjsua_sip_timer_use, callConfig);
@@ -638,6 +639,7 @@ public:
       val = acct_obj->Get(String::New("mwiConfig"));
       if (val->IsObject()) {
         AccountMwiConfig mwiConfig = acct_cfg.mwiConfig;
+        (void)mwiConfig; // ignore compiler warning
         Local<Object> mwi_obj = val->ToObject();
         JS2PJ_BOOL(mwi_obj, enabled, mwiConfig);
         JS2PJ_UINT(mwi_obj, expirationSec, mwiConfig);
@@ -716,6 +718,7 @@ public:
       val = acct_obj->Get(String::New("videoConfig"));
       if (val->IsObject()) {
         AccountVideoConfig videoConfig = acct_cfg.videoConfig;
+        (void)videoConfig; // ignore compiler warning
         Local<Object> vid_obj = val->ToObject();
         JS2PJ_BOOL(vid_obj, autoShowIncoming, videoConfig);
         JS2PJ_BOOL(vid_obj, autoTransmitOutgoing, videoConfig);

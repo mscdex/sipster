@@ -214,6 +214,11 @@ static Persistent<FunctionTemplate> SIPSTERCall_constructor;
 static Persistent<FunctionTemplate> SIPSTERAccount_constructor;
 static Persistent<FunctionTemplate> SIPSTERMedia_constructor;
 static Persistent<String> emit_symbol;
+static Persistent<String> media_dir_none_symbol;
+static Persistent<String> media_dir_outbound_symbol;
+static Persistent<String> media_dir_inbound_symbol;
+static Persistent<String> media_dir_bidi_symbol;
+static Persistent<String> media_dir_unknown_symbol;
 static uv_async_t dumb;
 
 class SIPSTERPlayer : public AudioMediaPlayer {
@@ -244,6 +249,7 @@ class SIPSTERMedia : public ObjectWrap {
 public:
   Persistent<Function> emit;
   AudioMedia* media;
+  pjmedia_dir dir;
 
   SIPSTERMedia() {}
   ~SIPSTERMedia() {
@@ -337,6 +343,30 @@ public:
     return Undefined();
   }
 
+  static Handle<Value> DirGetter(Local<String> property,
+                                 const AccessorInfo &info) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
+    Handle<String> str;
+    switch (med->dir) {
+      case PJMEDIA_DIR_NONE:
+        str = media_dir_none_symbol;
+      break;
+      case PJMEDIA_DIR_ENCODING:
+        str = media_dir_outbound_symbol;
+      break;
+      case PJMEDIA_DIR_DECODING:
+        str = media_dir_inbound_symbol;
+      break;
+      case PJMEDIA_DIR_ENCODING_DECODING:
+        str = media_dir_bidi_symbol;
+      break;
+      default:
+        str = media_dir_unknown_symbol;
+    }
+    return scope.Close(str);
+  }
+
   static void Initialize(Handle<Object> target) {
     HandleScope scope;
 
@@ -353,6 +383,9 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERMedia_constructor,
                               "stopTransmitTo",
                               StopTransmit);
+
+    SIPSTERMedia_constructor->PrototypeTemplate()
+                            ->SetAccessor(String::NewSymbol("dir"), DirGetter);
 
     target->Set(name, SIPSTERMedia_constructor->GetFunction());
   }
@@ -1092,6 +1125,7 @@ void dumb_cb(uv_async_t* handle, int status) {
                                               ->NewInstance(0, NULL);
             SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
             med->media = media;
+            med->dir = ci.media[i].dir;
             medias->Set(m++, med_obj);
           }
         }
@@ -1669,6 +1703,11 @@ extern "C" {
     CALLDTMF_DTMFB_symbol = NODE_PSYMBOL("B");
     CALLDTMF_DTMFC_symbol = NODE_PSYMBOL("C");
     CALLDTMF_DTMFD_symbol = NODE_PSYMBOL("D");
+    media_dir_none_symbol = NODE_PSYMBOL("none");
+    media_dir_outbound_symbol = NODE_PSYMBOL("outbound");
+    media_dir_inbound_symbol = NODE_PSYMBOL("inbound");
+    media_dir_bidi_symbol = NODE_PSYMBOL("bidirectional");
+    media_dir_unknown_symbol = NODE_PSYMBOL("unknown");
     emit_symbol = NODE_PSYMBOL("emit");
 
     uv_mutex_init(&event_mutex);

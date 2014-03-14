@@ -149,7 +149,7 @@ struct EV_ARGS_DTMF {
 
 // start generic event-related definitions =====================================
 #define X(kind, literal)                                            \
-  static Persistent<String> kind##_##literal##_symbol;
+  static Persistent<String> ev_##kind##_##literal##_symbol;
   EVENT_SYMBOLS
 #undef X
 
@@ -826,6 +826,7 @@ void dumb_cb(uv_async_t* handle, int status) {
         Local<Object> call_obj;
         call_obj = SIPSTERCall_constructor->GetFunction()
                                           ->NewInstance(1, new_call_args);
+        Handle<Value> emit_argv[3] = { ev_INCALL_call_symbol, obj, call_obj };
         call->emit->Call(acct->handle_, 3, emit_argv);
         delete args;
       }
@@ -835,12 +836,12 @@ void dumb_cb(uv_async_t* handle, int status) {
         SIPSTERAccount* acct = ev.acct;
         Handle<Value> emit_argv[1] = {
           args->active
-          ? REGSTATE_registered_symbol
-          : REGSTATE_unregistered_symbol
+          ? ev_REGSTATE_registered_symbol
+          : ev_REGSTATE_unregistered_symbol
         };
         acct->emit->Call(acct->handle_, 1, emit_argv);
         Handle<Value> emit_catchall_argv[N_REGSTATE_FIELDS + 1] = {
-          CALLSTATE_state_symbol,
+          ev_CALLSTATE_state_symbol,
 #define X(kind, ctype, name, v8type, valconv) \
           v8type::New(args->valconv),
           REGSTATE_FIELDS
@@ -857,22 +858,22 @@ void dumb_cb(uv_async_t* handle, int status) {
         Handle<Value> ev_name;
         switch (args->_state) {
           case PJSIP_INV_STATE_CALLING:
-            ev_name = CALLSTATE_calling_symbol;
+            ev_name = ev_CALLSTATE_calling_symbol;
           break;
           case PJSIP_INV_STATE_INCOMING:
-            ev_name = CALLSTATE_incoming_symbol;
+            ev_name = ev_CALLSTATE_incoming_symbol;
           break;
           case PJSIP_INV_STATE_EARLY:
-            ev_name = CALLSTATE_early_symbol;
+            ev_name = ev_CALLSTATE_early_symbol;
           break;
           case PJSIP_INV_STATE_CONNECTING:
-            ev_name = CALLSTATE_connecting_symbol;
+            ev_name = ev_CALLSTATE_connecting_symbol;
           break;
           case PJSIP_INV_STATE_CONFIRMED:
-            ev_name = CALLSTATE_confirmed_symbol;
+            ev_name = ev_CALLSTATE_confirmed_symbol;
           break;
           case PJSIP_INV_STATE_DISCONNECTED:
-            ev_name = CALLSTATE_disconnected_symbol;
+            ev_name = ev_CALLSTATE_disconnected_symbol;
           break;
           default:
           break;
@@ -881,7 +882,7 @@ void dumb_cb(uv_async_t* handle, int status) {
           SIPSTERCall* call = ev.call;
           Handle<Value> emit_argv[1] = { ev_name };
           call->emit->Call(call->handle_, 1, emit_argv);
-          Handle<Value> emit_catchall_argv[2] = { CALLSTATE_state_symbol, ev_name };
+          Handle<Value> emit_catchall_argv[2] = { ev_CALLSTATE_state_symbol, ev_name };
           call->emit->Call(call->handle_, 2, emit_catchall_argv);
         }
         delete args;
@@ -892,7 +893,7 @@ void dumb_cb(uv_async_t* handle, int status) {
         SIPSTERCall* call = ev.call;
         // TODO: make a symbol for each DTMF digit and use that instead?
         Local<Value> dtmf_char = String::New(args->digit.c_str());
-        Handle<Value> emit_argv[2] = { DTMF_dtmf_symbol, dtmf_char };
+        Handle<Value> emit_argv[2] = { ev_CALLDTMF_dtmf_symbol, dtmf_char };
         call->emit->Call(call->handle_, 2, emit_argv);
         delete args;
       }
@@ -1240,7 +1241,7 @@ extern "C" {
   void init(Handle<Object> target) {
     HandleScope scope;
 
-#define X(kind, literal) kind##_##literal##_symbol = NODE_PSYMBOL(#literal);
+#define X(kind, literal) ev_##kind##_##literal##_symbol = NODE_PSYMBOL(#literal);
   EVENT_SYMBOLS
 #undef X
 #define X(kind, ctype, name, v8type, valconv)              \

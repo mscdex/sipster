@@ -62,6 +62,15 @@ class SIPSTERCall;
   uv_async_send(&dumb);                                             \
 } while(0)
 
+#define SETUP_EVENT(name)                                           \
+  SIPEventInfo ev;                                                  \
+  EV_ARGS_##name* args = new EV_ARGS_##name;                        \
+  ev.type = EVENT_##name;                                           \
+  ev.args = reinterpret_cast<void*>(args)
+
+#define SETUP_EVENT_NOARGS(name)                                    \
+  SIPEventInfo ev;                                                  \
+  ev.type = EVENT_##name
 
 // registration change event(s) ================================================
 #define N_REGSTATE_FIELDS 2
@@ -195,11 +204,8 @@ public:
   virtual void onCallState(OnCallStateParam &prm) {
     CallInfo ci = getInfo();
 
-    SIPEventInfo ev;
-    EV_ARGS_CALLSTATE* args = new EV_ARGS_CALLSTATE;
-    ev.type = EVENT_CALLSTATE;
+    SETUP_EVENT(CALLSTATE);
     ev.call = this;
-    ev.args = reinterpret_cast<void*>(args);
 
     args->_state = ci.state;
 
@@ -209,11 +215,8 @@ public:
   virtual void onDtmfDigit(OnDtmfDigitParam &prm) {
     CallInfo ci = getInfo();
 
-    SIPEventInfo ev;
-    EV_ARGS_DTMF* args = new EV_ARGS_DTMF;
-    ev.type = EVENT_DTMF;
+    SETUP_EVENT(CALLDTMF);
     ev.call = this;
-    ev.args = reinterpret_cast<void*>(args);
 
     args->digit = prm.digit;
 
@@ -445,11 +448,9 @@ public:
 
   virtual void onRegState(OnRegStateParam &prm) {
     AccountInfo ai = getInfo();
-    SIPEventInfo ev;
-    EV_ARGS_REGSTATE* args = new EV_ARGS_REGSTATE;
-    ev.type = EVENT_REGSTATE;
+
+    SETUP_EVENT(REGSTATE);
     ev.acct = this;
-    ev.args = reinterpret_cast<void*>(args);
 
     args->active = ai.regIsActive;
     args->statusCode = prm.code;
@@ -461,12 +462,9 @@ public:
     SIPSTERCall *call = new SIPSTERCall(*this, iprm.callId);
     CallInfo ci = call->getInfo();
 
-    SIPEventInfo ev;
-    EV_ARGS_INCALL* args = new EV_ARGS_INCALL;
-    ev.type = EVENT_INCALL;
+    SETUP_EVENT(INCALL);
     ev.call = call;
     ev.acct = this;
-    ev.args = reinterpret_cast<void*>(args);
 
     args->localUri = ci.localUri;
     args->localContact = ci.localContact;

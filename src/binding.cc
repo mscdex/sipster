@@ -740,7 +740,7 @@ public:
     }
 
     val.Clear();
-    pjsip_transport_type_e transportType = PJSIP_TRANSPORT_UNSPECIFIED;
+    pjsip_transport_type_e transportType = PJSIP_TRANSPORT_UDP;
     if (args.Length() > 0 && args[0]->IsString())
       val = args[0];
     else if (args.Length() > 1 && args[1]->IsString())

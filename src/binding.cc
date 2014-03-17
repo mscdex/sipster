@@ -11,6 +11,7 @@ using namespace pj;
 class SIPSTERAccount;
 class SIPSTERCall;
 class SIPSTERMedia;
+class SIPSTERLogWriter;
 
 #define JS2PJ_INT(js, prop, pj) do {                                \
   val = js->Get(String::New(#prop));                                \
@@ -212,8 +213,16 @@ struct SIPEventInfo {
   SIPSTERMedia* media;
   void* args;
 };
+struct CustomLogEntry {
+  int level;
+  string msg;
+  double threadId;
+  string threadName;
+};
 static list<SIPEventInfo> event_queue;
+static list<CustomLogEntry> log_queue;
 static uv_mutex_t event_mutex;
+static uv_mutex_t log_mutex;
 static uv_mutex_t async_mutex;
 // =============================================================================
 
@@ -223,6 +232,7 @@ static bool ep_init = false;
 static bool ep_create = false;
 static bool ep_start = false;
 static EpConfig ep_cfg;
+static SIPSTERLogWriter* logger = NULL;
 // =============================================================================
 
 static Persistent<FunctionTemplate> SIPSTERCall_constructor;
@@ -236,6 +246,8 @@ static Persistent<String> media_dir_inbound_symbol;
 static Persistent<String> media_dir_bidi_symbol;
 static Persistent<String> media_dir_unknown_symbol;
 static uv_async_t dumb;
+static uv_async_t logging;
+static Persistent<Object> global;
 
 class SIPSTERPlayer : public AudioMediaPlayer {
 public:
@@ -1412,6 +1424,32 @@ public:
   }
 };
 
+class SIPSTERLogWriter : public LogWriter {
+public:
+  Persistent<Function> func;
+
+  SIPSTERLogWriter() {}
+  ~SIPSTERLogWriter() {
+    if (!func.IsEmpty()) {
+      func.Dispose();
+      func.Clear();
+    }
+  }
+
+  virtual void write(const LogEntry& entry) {
+    CustomLogEntry log;
+    log.level = entry.level;
+    log.msg = entry.msg;
+    log.threadId = static_cast<double>(entry.threadId);
+    log.threadName = entry.threadName;
+
+    uv_mutex_lock(&log_mutex);
+    log_queue.push_back(log);
+    uv_mutex_unlock(&log_mutex);
+    uv_async_send(&logging);
+  }
+};
+
 // start event processing-related definitions ==================================
 void dumb_cb(uv_async_t* handle, int status) {
   while (true) {
@@ -1617,6 +1655,32 @@ void dumb_cb(uv_async_t* handle, int status) {
       FatalException(try_catch);
   }
   uv_mutex_unlock(&event_mutex);
+}
+
+void logging_close_cb(uv_handle_t* handle) {}
+
+void logging_cb(uv_async_t* handle, int status) {
+  Handle<Value> log_argv[4];
+  while (true) {
+    uv_mutex_lock(&log_mutex);
+    if (log_queue.empty())
+      break;
+    const CustomLogEntry log = log_queue.front();
+    log_queue.pop_front();
+    uv_mutex_unlock(&log_mutex);
+
+    HandleScope scope;
+
+    log_argv[0] = Integer::New(log.level);
+    log_argv[1] = String::New(log.msg.c_str());
+    log_argv[2] = Number::New(log.threadId);
+    log_argv[3] = String::New(log.threadName.c_str());
+
+    TryCatch try_catch;
+    logger->func->Call(global, 4, log_argv);
+    if (try_catch.HasCaught())
+      FatalException(try_catch);
+  }
 }
 // =============================================================================
 
@@ -1851,6 +1915,20 @@ static Handle<Value> EPInit(const Arguments& args) {
       JS2PJ_STR(log_obj, filename, logConfig);
       JS2PJ_UINT(log_obj, fileFlags, logConfig);
       // TODO: LogWriter function?
+
+      val = log_obj->Get(String::New("writer"));
+      if (val->IsFunction()) {
+        if (logger) {
+          delete logger;
+          uv_close(reinterpret_cast<uv_handle_t*>(&logging), logging_close_cb);
+        }
+        logger = new SIPSTERLogWriter();
+        logger->func = Persistent<Function>::New(Local<Function>::Cast(val));
+        logConfig.writer = logger;
+        uv_async_init(uv_default_loop(), &logging, logging_cb);
+      }
+
+      ep_cfg.logConfig = logConfig;
     }
 
     val = cfg_obj->Get(String::New("medConfig"));
@@ -2039,12 +2117,15 @@ extern "C" {
     emit_symbol = NODE_PSYMBOL("emit");
 
     uv_mutex_init(&event_mutex);
+    uv_mutex_init(&log_mutex);
     uv_mutex_init(&async_mutex);
 
     SIPSTERAccount::Initialize(target);
     SIPSTERCall::Initialize(target);
     SIPSTERMedia::Initialize(target);
     SIPSTERTransport::Initialize(target);
+
+    global = Persistent<Object>::New(Context::GetCurrent()->Global());
 
     target->Set(String::NewSymbol("version"),
                 FunctionTemplate::New(EPVersion)->GetFunction());

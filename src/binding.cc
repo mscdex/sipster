@@ -2091,6 +2091,12 @@ static Handle<Value> EPMediaActivePorts(const Arguments& args) {
   return scope.Close(Integer::NewFromUnsigned(ep->mediaActivePorts()));
 }
 
+static Handle<Value> EPMediaMaxPorts(const Arguments& args) {
+  HandleScope scope;
+
+  return scope.Close(Integer::NewFromUnsigned(ep->mediaMaxPorts()));
+}
+
 extern "C" {
   void init(Handle<Object> target) {
     HandleScope scope;
@@ -2154,6 +2160,8 @@ extern "C" {
                 FunctionTemplate::New(EPHangupAllCalls)->GetFunction());
     target->Set(String::NewSymbol("mediaActivePorts"),
                 FunctionTemplate::New(EPMediaActivePorts)->GetFunction());
+    target->Set(String::NewSymbol("mediaMaxPorts"),
+                FunctionTemplate::New(EPMediaMaxPorts)->GetFunction());
 
     target->Set(String::NewSymbol("createRecorder"),
                 FunctionTemplate::New(CreateRecorder)->GetFunction());

@@ -1784,29 +1784,105 @@ static Handle<Value> EPInit(const Arguments& args) {
     }
   }
 
-  /*if (args.Length() == 1 && args[0]->IsString()) {
-    JsonDocument rdoc;
-    String::Utf8Value str(args[0]->ToString());
-    try {
-      rdoc.loadString(reinterpret_cast<const char*>(*str));
-    } catch(Error& err) {
-      errstr = "JsonDocument.loadString error: " + err.info();
-      ThrowException(Exception::Error(String::New(errstr.c_str())));
-      return Undefined();
-    }
-    try {
-      rdoc.readObject(ep_cfg);
-    } catch(Error& err) {
-      errstr = "JsonDocument.readObject(EpConfig) error: " + err.info();
-      ThrowException(Exception::Error(String::New(errstr.c_str())));
-      return Undefined();
-    }
-  }*/
 
   /*ep_cfg.logConfig.msgLogging = PJ_LOG_HAS_NEWLINE | PJ_LOG_HAS_COLOR | PJ_LOG_HAS_LEVEL_TEXT;
   ep_cfg.logConfig.level = 5;
   ep_cfg.logConfig.consoleLevel = 5;
   ep_cfg.logConfig.decor = PJ_LOG_HAS_NEWLINE | PJ_LOG_HAS_COLOR | PJ_LOG_HAS_LEVEL_TEXT;*/
+
+  Local<Value> val;
+  if (args.Length() > 0 && args[0]->IsObject()) {
+    Local<Object> cfg_obj = args[0]->ToObject();
+    val = cfg_obj->Get(String::New("uaConfig"));
+    if (val->IsObject()) {
+      UaConfig uaConfig = ep_cfg.uaConfig;
+      Local<Object> ua_obj = val->ToObject();
+      JS2PJ_UINT(ua_obj, maxCalls, uaConfig);
+      JS2PJ_UINT(ua_obj, threadCnt, uaConfig);
+      JS2PJ_BOOL(ua_obj, mainThreadOnly, uaConfig);
+
+      val = ua_obj->Get(String::New("nameserver"));
+      if (val->IsArray()) {
+        const Local<Array> arr_obj = Local<Array>::Cast(val);
+        const uint32_t arr_length = arr_obj->Length();
+        if (arr_length > 0) {
+          vector<string> nameservers;
+          for (uint32_t i = 0; i < arr_length; ++i) {
+            const Local<Value> arr_val = arr_obj->Get(i);
+            if (arr_val->IsString())
+              nameservers.push_back(string(*String::AsciiValue(arr_val->ToString())));
+          }
+          if (nameservers.size() > 0)
+            uaConfig.nameserver = nameservers;
+        }
+      }
+
+      JS2PJ_STR(ua_obj, userAgent, uaConfig);
+
+      val = ua_obj->Get(String::New("stunServer"));
+      if (val->IsArray()) {
+        const Local<Array> arr_obj = Local<Array>::Cast(val);
+        const uint32_t arr_length = arr_obj->Length();
+        if (arr_length > 0) {
+          vector<string> stunServers;
+          for (uint32_t i = 0; i < arr_length; ++i) {
+            const Local<Value> arr_val = arr_obj->Get(i);
+            if (arr_val->IsString())
+              stunServers.push_back(string(*String::AsciiValue(arr_val->ToString())));
+          }
+          if (stunServers.size() > 0)
+            uaConfig.stunServer = stunServers;
+        }
+      }
+
+      JS2PJ_BOOL(ua_obj, stunIgnoreFailure, uaConfig);
+      JS2PJ_INT(ua_obj, natTypeInSdp, uaConfig);
+      JS2PJ_BOOL(ua_obj, mwiUnsolicitedEnabled, uaConfig);
+    }
+
+    val = cfg_obj->Get(String::New("logConfig"));
+    if (val->IsObject()) {
+      LogConfig logConfig = ep_cfg.logConfig;
+      Local<Object> log_obj = val->ToObject();
+      JS2PJ_UINT(log_obj, msgLogging, logConfig);
+      JS2PJ_UINT(log_obj, level, logConfig);
+      JS2PJ_UINT(log_obj, consoleLevel, logConfig);
+      JS2PJ_UINT(log_obj, decor, logConfig);
+      JS2PJ_STR(log_obj, filename, logConfig);
+      JS2PJ_UINT(log_obj, fileFlags, logConfig);
+      // TODO: LogWriter function?
+    }
+
+    val = cfg_obj->Get(String::New("medConfig"));
+    if (val->IsObject()) {
+      MediaConfig medConfig = ep_cfg.medConfig;
+      (void)medConfig;
+      Local<Object> med_obj = val->ToObject();
+      JS2PJ_UINT(med_obj, clockRate, medConfig);
+      JS2PJ_UINT(med_obj, sndClockRate, medConfig);
+      JS2PJ_UINT(med_obj, channelCount, medConfig);
+      JS2PJ_UINT(med_obj, audioFramePtime, medConfig);
+      JS2PJ_UINT(med_obj, maxMediaPorts, medConfig);
+      JS2PJ_BOOL(med_obj, hasIoqueue, medConfig);
+      JS2PJ_UINT(med_obj, threadCnt, medConfig);
+      JS2PJ_UINT(med_obj, quality, medConfig);
+      JS2PJ_UINT(med_obj, ptime, medConfig);
+      JS2PJ_BOOL(med_obj, noVad, medConfig);
+      JS2PJ_UINT(med_obj, ilbcMode, medConfig);
+      JS2PJ_UINT(med_obj, txDropPct, medConfig);
+      JS2PJ_UINT(med_obj, rxDropPct, medConfig);
+      JS2PJ_UINT(med_obj, ecOptions, medConfig);
+      JS2PJ_UINT(med_obj, ecTailLen, medConfig);
+      JS2PJ_UINT(med_obj, sndRecLatency, medConfig);
+      JS2PJ_UINT(med_obj, sndPlayLatency, medConfig);
+      JS2PJ_INT(med_obj, jbInit, medConfig);
+      JS2PJ_INT(med_obj, jbMinPre, medConfig);
+      JS2PJ_INT(med_obj, jbMaxPre, medConfig);
+      JS2PJ_INT(med_obj, jbMax, medConfig);
+      JS2PJ_INT(med_obj, sndAutoCloseTime, medConfig);
+      JS2PJ_BOOL(med_obj, vidPreviewEnableNative, medConfig);
+    }
+  }
 
   try {
     ep->libInit(ep_cfg);

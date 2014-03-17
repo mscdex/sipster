@@ -1958,19 +1958,19 @@ static Handle<Value> EPGetState(const Arguments& args) {
     string state;
     switch (st) {
       case PJSUA_STATE_CREATED:
-        state = "CREATED";
+        state = "created";
       break;
       case PJSUA_STATE_INIT:
-        state = "INIT";
+        state = "init";
       break;
       case PJSUA_STATE_STARTING:
-        state = "STARTING";
+        state = "starting";
       break;
       case PJSUA_STATE_RUNNING:
-        state = "RUNNING";
+        state = "running";
       break;
       case PJSUA_STATE_CLOSING:
-        state = "CLOSING";
+        state = "closing";
       break;
       default:
         return Null();

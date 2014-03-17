@@ -892,6 +892,263 @@ public:
     emit.Clear();
   }
 
+  static AccountConfig genConfig(Local<Object> acct_obj) {
+    HandleScope scope;
+
+    AccountConfig acct_cfg;
+
+    Local<Value> val;
+
+    JS2PJ_INT(acct_obj, priority, acct_cfg);
+    JS2PJ_STR(acct_obj, idUri, acct_cfg);
+
+    val = acct_obj->Get(String::New("regConfig"));
+    if (val->IsObject()) {
+      AccountRegConfig regConfig = acct_cfg.regConfig;
+      Local<Object> reg_obj = val->ToObject();
+      JS2PJ_STR(reg_obj, registrarUri, regConfig);
+      JS2PJ_BOOL(reg_obj, registerOnAdd, regConfig);
+
+      val = reg_obj->Get(String::New("headers"));
+      if (val->IsObject()) {
+        const Local<Object> hdr_obj = val->ToObject();
+        const Local<Array> hdr_props = hdr_obj->GetPropertyNames();
+        const uint32_t hdr_length = hdr_props->Length();
+        if (hdr_length > 0) {
+          vector<SipHeader> sipheaders;
+          for (uint32_t i = 0; i < hdr_length; ++i) {
+            const Local<Value> key = hdr_props->Get(i);
+            const Local<Value> value = hdr_obj->Get(key);
+            SipHeader hdr;
+            hdr.hName = string(*String::AsciiValue(key->ToString()));
+            hdr.hValue = string(*String::AsciiValue(value->ToString()));
+            sipheaders.push_back(hdr);
+          }
+          regConfig.headers = sipheaders;
+        }
+      }
+
+      JS2PJ_UINT(reg_obj, timeoutSec, regConfig);
+      JS2PJ_UINT(reg_obj, retryIntervalSec, regConfig);
+      JS2PJ_UINT(reg_obj, firstRetryIntervalSec, regConfig);
+      JS2PJ_UINT(reg_obj, delayBeforeRefreshSec, regConfig);
+      JS2PJ_BOOL(reg_obj, dropCallsOnFail, regConfig);
+      JS2PJ_UINT(reg_obj, unregWaitSec, regConfig);
+      JS2PJ_UINT(reg_obj, proxyUse, regConfig);
+    }
+    val = acct_obj->Get(String::New("sipConfig"));
+    if (val->IsObject()) {
+      AccountSipConfig sipConfig = acct_cfg.sipConfig;
+      Local<Object> sip_obj = val->ToObject();
+
+      val = sip_obj->Get(String::New("authCreds"));
+      if (val->IsArray()) {
+        const Local<Array> arr_obj = Local<Array>::Cast(val);
+        const uint32_t arr_length = arr_obj->Length();
+        if (arr_length > 0) {
+          vector<AuthCredInfo> creds;
+          for (uint32_t i = 0; i < arr_length; ++i) {
+            const Local<Value> cred_value = arr_obj->Get(i);
+
+            if (cred_value->IsObject()) {
+              const Local<Object> auth_obj = cred_value->ToObject();
+              const Local<Array> auth_props = auth_obj->GetPropertyNames();
+              const uint32_t auth_length = auth_props->Length();
+              if (auth_length > 0) {
+                AuthCredInfo credinfo;
+                credinfo.dataType = -1;
+                for (uint32_t i = 0; i < auth_length; ++i) {
+                  const Local<Value> key = auth_props->Get(i);
+                  const Local<Value> value = auth_obj->Get(key);
+                  const string keystr(*String::AsciiValue(key->ToString()));
+                  const string valstr(*String::AsciiValue(value->ToString()));
+                  if (keystr == "scheme")
+                    credinfo.scheme = valstr;
+                  else if (keystr == "realm")
+                    credinfo.realm = valstr;
+                  else if (keystr == "username")
+                    credinfo.username = valstr;
+                  else if (keystr == "dataType") {
+                    if (valstr == "digest")
+                      credinfo.dataType =  PJSIP_CRED_DATA_DIGEST;
+                    else
+                      credinfo.dataType = PJSIP_CRED_DATA_PLAIN_PASSWD;
+                  } else if (keystr == "data")
+                    credinfo.data = valstr;
+                }
+                if (credinfo.scheme.length() > 0
+                    && credinfo.realm.length() > 0
+                    && credinfo.username.length() > 0
+                    && credinfo.dataType >= 0)
+                  creds.push_back(credinfo);
+              }
+            }
+          }
+          if (creds.size() > 0)
+            sipConfig.authCreds = creds;
+        }
+      }
+
+      val = sip_obj->Get(String::New("proxies"));
+      if (val->IsArray()) {
+        const Local<Array> arr_obj = Local<Array>::Cast(val);
+        const uint32_t arr_length = arr_obj->Length();
+        if (arr_length > 0) {
+          vector<string> proxies;
+          for (uint32_t i = 0; i < arr_length; ++i) {
+            const Local<Value> value = arr_obj->Get(i);
+            proxies.push_back(string(*String::AsciiValue(value->ToString())));
+          }
+          sipConfig.proxies = proxies;
+        }
+      }
+
+      JS2PJ_STR(sip_obj, contactForced, sipConfig);
+      JS2PJ_STR(sip_obj, contactParams, sipConfig);
+      JS2PJ_STR(sip_obj, contactUriParams, sipConfig);
+      JS2PJ_BOOL(sip_obj, authInitialEmpty, sipConfig);
+      JS2PJ_STR(sip_obj, authInitialAlgorithm, sipConfig);
+      // TODO: transportId
+    }
+    val = acct_obj->Get(String::New("callConfig"));
+    if (val->IsObject()) {
+      AccountCallConfig callConfig = acct_cfg.callConfig;
+      Local<Object> call_obj = val->ToObject();
+      (void)callConfig; // ignore compiler warning
+      JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, callConfig);
+      JS2PJ_ENUM(call_obj, prackUse, pjsua_100rel_use, callConfig);
+      JS2PJ_ENUM(call_obj, timerUse, pjsua_sip_timer_use, callConfig);
+      JS2PJ_UINT(call_obj, timerMinSESec, callConfig);
+      JS2PJ_UINT(call_obj, timerSessExpiresSec, callConfig);
+    }
+    val = acct_obj->Get(String::New("presConfig"));
+    if (val->IsObject()) {
+      AccountPresConfig presConfig = acct_cfg.presConfig;
+      Local<Object> pres_obj = val->ToObject();
+
+      val = pres_obj->Get(String::New("headers"));
+      if (val->IsObject()) {
+        const Local<Object> hdr_obj = val->ToObject();
+        const Local<Array> hdr_props = hdr_obj->GetPropertyNames();
+        const uint32_t hdr_length = hdr_props->Length();
+        if (hdr_length > 0) {
+          vector<SipHeader> sipheaders;
+          for (uint32_t i = 0; i < hdr_length; ++i) {
+            const Local<Value> key = hdr_props->Get(i);
+            const Local<Value> value = hdr_obj->Get(key);
+            SipHeader hdr;
+            hdr.hName = string(*String::AsciiValue(key->ToString()));
+            hdr.hValue = string(*String::AsciiValue(value->ToString()));
+            sipheaders.push_back(hdr);
+          }
+          presConfig.headers = sipheaders;
+        }
+      }
+
+      JS2PJ_BOOL(pres_obj, publishEnabled, presConfig);
+      JS2PJ_BOOL(pres_obj, publishQueue, presConfig);
+      JS2PJ_UINT(pres_obj, publishShutdownWaitMsec, presConfig);
+      JS2PJ_STR(pres_obj, pidfTupleId, presConfig);
+    }
+    val = acct_obj->Get(String::New("mwiConfig"));
+    if (val->IsObject()) {
+      AccountMwiConfig mwiConfig = acct_cfg.mwiConfig;
+      (void)mwiConfig; // ignore compiler warning
+      Local<Object> mwi_obj = val->ToObject();
+      JS2PJ_BOOL(mwi_obj, enabled, mwiConfig);
+      JS2PJ_UINT(mwi_obj, expirationSec, mwiConfig);
+    }
+    val = acct_obj->Get(String::New("natConfig"));
+    if (val->IsObject()) {
+      AccountNatConfig natConfig = acct_cfg.natConfig;
+      Local<Object> nat_obj = val->ToObject();
+      JS2PJ_ENUM(nat_obj, sipStunUse, pjsua_stun_use, natConfig);
+      JS2PJ_ENUM(nat_obj, mediaStunUse, pjsua_stun_use, natConfig);
+      JS2PJ_BOOL(nat_obj, iceEnabled, natConfig);
+      JS2PJ_INT(nat_obj, iceMaxHostCands, natConfig);
+      JS2PJ_BOOL(nat_obj, iceAggressiveNomination, natConfig);
+      JS2PJ_UINT(nat_obj, iceNominatedCheckDelayMsec, natConfig);
+      JS2PJ_INT(nat_obj, iceWaitNominationTimeoutMsec, natConfig);
+      JS2PJ_BOOL(nat_obj, iceNoRtcp, natConfig);
+      JS2PJ_BOOL(nat_obj, iceAlwaysUpdate, natConfig);
+      JS2PJ_BOOL(nat_obj, turnEnabled, natConfig);
+      JS2PJ_STR(nat_obj, turnServer, natConfig);
+      JS2PJ_ENUM(nat_obj, turnConnType, pj_turn_tp_type, natConfig);
+      JS2PJ_STR(nat_obj, turnUserName, natConfig);
+      JS2PJ_INT(nat_obj, turnPasswordType, natConfig);
+      JS2PJ_STR(nat_obj, turnPassword, natConfig);
+      JS2PJ_INT(nat_obj, contactRewriteUse, natConfig);
+      JS2PJ_INT(nat_obj, contactRewriteMethod, natConfig);
+      JS2PJ_INT(nat_obj, viaRewriteUse, natConfig);
+      JS2PJ_INT(nat_obj, sdpNatRewriteUse, natConfig);
+      JS2PJ_INT(nat_obj, sipOutboundUse, natConfig);
+      JS2PJ_STR(nat_obj, sipOutboundInstanceId, natConfig);
+      JS2PJ_STR(nat_obj, sipOutboundRegId, natConfig);
+      JS2PJ_UINT(nat_obj, udpKaIntervalSec, natConfig);
+      JS2PJ_STR(nat_obj, udpKaData, natConfig);
+    }
+    val = acct_obj->Get(String::New("mediaConfig"));
+    if (val->IsObject()) {
+      AccountMediaConfig mediaConfig = acct_cfg.mediaConfig;
+      Local<Object> media_obj = val->ToObject();
+
+      val = media_obj->Get(String::New("transportConfig"));
+      if (val->IsObject()) {
+        TransportConfig transportConfig = mediaConfig.transportConfig;
+        Local<Object> obj = val->ToObject();
+        JS2PJ_UINT(obj, port, transportConfig);
+        JS2PJ_UINT(obj, portRange, transportConfig);
+        JS2PJ_STR(obj, publicAddress, transportConfig);
+        JS2PJ_STR(obj, boundAddress, transportConfig);
+        JS2PJ_ENUM(obj, qosType, pj_qos_type, transportConfig);
+        //JS2PJ_INT(obj, qosParams, acct_cfg.transportConfig);
+
+        val = obj->Get(String::New("tlsConfig"));
+        if (val->IsObject()) {
+          TlsConfig tlsConfig = transportConfig.tlsConfig;
+          Local<Object> tls_obj = val->ToObject();
+          JS2PJ_STR(tls_obj, CaListFile, tlsConfig);
+          JS2PJ_STR(tls_obj, certFile, tlsConfig);
+          JS2PJ_STR(tls_obj, privKeyFile, tlsConfig);
+          JS2PJ_STR(tls_obj, password, tlsConfig);
+          JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tlsConfig);
+          // TODO: ciphers
+          JS2PJ_BOOL(tls_obj, verifyServer, tlsConfig);
+          JS2PJ_BOOL(tls_obj, verifyClient, tlsConfig);
+          JS2PJ_BOOL(tls_obj, requireClientCert, tlsConfig);
+          JS2PJ_UINT(tls_obj, msecTimeout, tlsConfig);
+          JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tlsConfig);
+          //JS2PJ_INT(tls_obj, qosParams, tlsConfig);
+          JS2PJ_BOOL(tls_obj, qosIgnoreError, tlsConfig);
+        }
+      }
+
+      JS2PJ_BOOL(media_obj, lockCodecEnabled, mediaConfig);
+      JS2PJ_BOOL(media_obj, streamKaEnabled, mediaConfig);
+      JS2PJ_ENUM(media_obj, srtpUse, pjmedia_srtp_use, mediaConfig);
+      JS2PJ_INT(media_obj, srtpSecureSignaling, mediaConfig);
+      JS2PJ_ENUM(media_obj, ipv6Use, pjsua_ipv6_use, mediaConfig);
+    }
+    val = acct_obj->Get(String::New("videoConfig"));
+    if (val->IsObject()) {
+      AccountVideoConfig videoConfig = acct_cfg.videoConfig;
+      (void)videoConfig; // ignore compiler warning
+      Local<Object> vid_obj = val->ToObject();
+      JS2PJ_BOOL(vid_obj, autoShowIncoming, videoConfig);
+      JS2PJ_BOOL(vid_obj, autoTransmitOutgoing, videoConfig);
+      JS2PJ_UINT(vid_obj, windowFlags, videoConfig);
+      JS2PJ_INT(vid_obj, defaultCaptureDevice, videoConfig);
+      JS2PJ_INT(vid_obj, defaultRenderDevice, videoConfig);
+      JS2PJ_ENUM(vid_obj,
+                 rateControlMethod,
+                 pjmedia_vid_stream_rc_method,
+                 videoConfig);
+      JS2PJ_UINT(vid_obj, rateControlBandwidth, videoConfig);
+    }
+
+    return acct_cfg;
+  }
+
   virtual void onRegStarted(OnRegStartedParam &prm) {
     SETUP_EVENT(REGSTARTING);
     ev.acct = this;
@@ -944,261 +1201,13 @@ public:
 
     AccountConfig acct_cfg;
     string errstr;
-    Local<Value> val;
-    if (args.Length() > 0 && args[0]->IsObject()) {
-      Local<Object> acct_obj = args[0]->ToObject();
-      JS2PJ_INT(acct_obj, priority, acct_cfg);
-      JS2PJ_STR(acct_obj, idUri, acct_cfg);
-
-      val = acct_obj->Get(String::New("regConfig"));
-      if (val->IsObject()) {
-        AccountRegConfig regConfig = acct_cfg.regConfig;
-        Local<Object> reg_obj = val->ToObject();
-        JS2PJ_STR(reg_obj, registrarUri, regConfig);
-        JS2PJ_BOOL(reg_obj, registerOnAdd, regConfig);
-
-        val = reg_obj->Get(String::New("headers"));
-        if (val->IsObject()) {
-          const Local<Object> hdr_obj = val->ToObject();
-          const Local<Array> hdr_props = hdr_obj->GetPropertyNames();
-          const uint32_t hdr_length = hdr_props->Length();
-          if (hdr_length > 0) {
-            vector<SipHeader> sipheaders;
-            for (uint32_t i = 0; i < hdr_length; ++i) {
-              const Local<Value> key = hdr_props->Get(i);
-              const Local<Value> value = hdr_obj->Get(key);
-              SipHeader hdr;
-              hdr.hName = string(*String::AsciiValue(key->ToString()));
-              hdr.hValue = string(*String::AsciiValue(value->ToString()));
-              sipheaders.push_back(hdr);
-            }
-            regConfig.headers = sipheaders;
-          }
-        }
-
-        JS2PJ_UINT(reg_obj, timeoutSec, regConfig);
-        JS2PJ_UINT(reg_obj, retryIntervalSec, regConfig);
-        JS2PJ_UINT(reg_obj, firstRetryIntervalSec, regConfig);
-        JS2PJ_UINT(reg_obj, delayBeforeRefreshSec, regConfig);
-        JS2PJ_BOOL(reg_obj, dropCallsOnFail, regConfig);
-        JS2PJ_UINT(reg_obj, unregWaitSec, regConfig);
-        JS2PJ_UINT(reg_obj, proxyUse, regConfig);
-      }
-      val = acct_obj->Get(String::New("sipConfig"));
-      if (val->IsObject()) {
-        AccountSipConfig sipConfig = acct_cfg.sipConfig;
-        Local<Object> sip_obj = val->ToObject();
-
-        val = sip_obj->Get(String::New("authCreds"));
-        if (val->IsArray()) {
-          const Local<Array> arr_obj = Local<Array>::Cast(val);
-          const uint32_t arr_length = arr_obj->Length();
-          if (arr_length > 0) {
-            vector<AuthCredInfo> creds;
-            for (uint32_t i = 0; i < arr_length; ++i) {
-              const Local<Value> cred_value = arr_obj->Get(i);
-
-              if (cred_value->IsObject()) {
-                const Local<Object> auth_obj = cred_value->ToObject();
-                const Local<Array> auth_props = auth_obj->GetPropertyNames();
-                const uint32_t auth_length = auth_props->Length();
-                if (auth_length > 0) {
-                  AuthCredInfo credinfo;
-                  credinfo.dataType = -1;
-                  for (uint32_t i = 0; i < auth_length; ++i) {
-                    const Local<Value> key = auth_props->Get(i);
-                    const Local<Value> value = auth_obj->Get(key);
-                    const string keystr(*String::AsciiValue(key->ToString()));
-                    const string valstr(*String::AsciiValue(value->ToString()));
-                    if (keystr == "scheme")
-                      credinfo.scheme = valstr;
-                    else if (keystr == "realm")
-                      credinfo.realm = valstr;
-                    else if (keystr == "username")
-                      credinfo.username = valstr;
-                    else if (keystr == "dataType") {
-                      if (valstr == "digest")
-                        credinfo.dataType =  PJSIP_CRED_DATA_DIGEST;
-                      else
-                        credinfo.dataType = PJSIP_CRED_DATA_PLAIN_PASSWD;
-                    } else if (keystr == "data")
-                      credinfo.data = valstr;
-                  }
-                  if (credinfo.scheme.length() > 0
-                      && credinfo.realm.length() > 0
-                      && credinfo.username.length() > 0
-                      && credinfo.dataType >= 0)
-                    creds.push_back(credinfo);
-                }
-              }
-            }
-            if (creds.size() > 0)
-              sipConfig.authCreds = creds;
-          }
-        }
-
-        val = sip_obj->Get(String::New("proxies"));
-        if (val->IsArray()) {
-          const Local<Array> arr_obj = Local<Array>::Cast(val);
-          const uint32_t arr_length = arr_obj->Length();
-          if (arr_length > 0) {
-            vector<string> proxies;
-            for (uint32_t i = 0; i < arr_length; ++i) {
-              const Local<Value> value = arr_obj->Get(i);
-              proxies.push_back(string(*String::AsciiValue(value->ToString())));
-            }
-            sipConfig.proxies = proxies;
-          }
-        }
-
-        JS2PJ_STR(sip_obj, contactForced, sipConfig);
-        JS2PJ_STR(sip_obj, contactParams, sipConfig);
-        JS2PJ_STR(sip_obj, contactUriParams, sipConfig);
-        JS2PJ_BOOL(sip_obj, authInitialEmpty, sipConfig);
-        JS2PJ_STR(sip_obj, authInitialAlgorithm, sipConfig);
-        // TODO: transportId
-      }
-      val = acct_obj->Get(String::New("callConfig"));
-      if (val->IsObject()) {
-        AccountCallConfig callConfig = acct_cfg.callConfig;
-        Local<Object> call_obj = val->ToObject();
-        (void)callConfig; // ignore compiler warning
-        JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, callConfig);
-        JS2PJ_ENUM(call_obj, prackUse, pjsua_100rel_use, callConfig);
-        JS2PJ_ENUM(call_obj, timerUse, pjsua_sip_timer_use, callConfig);
-        JS2PJ_UINT(call_obj, timerMinSESec, callConfig);
-        JS2PJ_UINT(call_obj, timerSessExpiresSec, callConfig);
-      }
-      val = acct_obj->Get(String::New("presConfig"));
-      if (val->IsObject()) {
-        AccountPresConfig presConfig = acct_cfg.presConfig;
-        Local<Object> pres_obj = val->ToObject();
-
-        val = pres_obj->Get(String::New("headers"));
-        if (val->IsObject()) {
-          const Local<Object> hdr_obj = val->ToObject();
-          const Local<Array> hdr_props = hdr_obj->GetPropertyNames();
-          const uint32_t hdr_length = hdr_props->Length();
-          if (hdr_length > 0) {
-            vector<SipHeader> sipheaders;
-            for (uint32_t i = 0; i < hdr_length; ++i) {
-              const Local<Value> key = hdr_props->Get(i);
-              const Local<Value> value = hdr_obj->Get(key);
-              SipHeader hdr;
-              hdr.hName = string(*String::AsciiValue(key->ToString()));
-              hdr.hValue = string(*String::AsciiValue(value->ToString()));
-              sipheaders.push_back(hdr);
-            }
-            presConfig.headers = sipheaders;
-          }
-        }
-
-        JS2PJ_BOOL(pres_obj, publishEnabled, presConfig);
-        JS2PJ_BOOL(pres_obj, publishQueue, presConfig);
-        JS2PJ_UINT(pres_obj, publishShutdownWaitMsec, presConfig);
-        JS2PJ_STR(pres_obj, pidfTupleId, presConfig);
-      }
-      val = acct_obj->Get(String::New("mwiConfig"));
-      if (val->IsObject()) {
-        AccountMwiConfig mwiConfig = acct_cfg.mwiConfig;
-        (void)mwiConfig; // ignore compiler warning
-        Local<Object> mwi_obj = val->ToObject();
-        JS2PJ_BOOL(mwi_obj, enabled, mwiConfig);
-        JS2PJ_UINT(mwi_obj, expirationSec, mwiConfig);
-      }
-      val = acct_obj->Get(String::New("natConfig"));
-      if (val->IsObject()) {
-        AccountNatConfig natConfig = acct_cfg.natConfig;
-        Local<Object> nat_obj = val->ToObject();
-        JS2PJ_ENUM(nat_obj, sipStunUse, pjsua_stun_use, natConfig);
-        JS2PJ_ENUM(nat_obj, mediaStunUse, pjsua_stun_use, natConfig);
-        JS2PJ_BOOL(nat_obj, iceEnabled, natConfig);
-        JS2PJ_INT(nat_obj, iceMaxHostCands, natConfig);
-        JS2PJ_BOOL(nat_obj, iceAggressiveNomination, natConfig);
-        JS2PJ_UINT(nat_obj, iceNominatedCheckDelayMsec, natConfig);
-        JS2PJ_INT(nat_obj, iceWaitNominationTimeoutMsec, natConfig);
-        JS2PJ_BOOL(nat_obj, iceNoRtcp, natConfig);
-        JS2PJ_BOOL(nat_obj, iceAlwaysUpdate, natConfig);
-        JS2PJ_BOOL(nat_obj, turnEnabled, natConfig);
-        JS2PJ_STR(nat_obj, turnServer, natConfig);
-        JS2PJ_ENUM(nat_obj, turnConnType, pj_turn_tp_type, natConfig);
-        JS2PJ_STR(nat_obj, turnUserName, natConfig);
-        JS2PJ_INT(nat_obj, turnPasswordType, natConfig);
-        JS2PJ_STR(nat_obj, turnPassword, natConfig);
-        JS2PJ_INT(nat_obj, contactRewriteUse, natConfig);
-        JS2PJ_INT(nat_obj, contactRewriteMethod, natConfig);
-        JS2PJ_INT(nat_obj, viaRewriteUse, natConfig);
-        JS2PJ_INT(nat_obj, sdpNatRewriteUse, natConfig);
-        JS2PJ_INT(nat_obj, sipOutboundUse, natConfig);
-        JS2PJ_STR(nat_obj, sipOutboundInstanceId, natConfig);
-        JS2PJ_STR(nat_obj, sipOutboundRegId, natConfig);
-        JS2PJ_UINT(nat_obj, udpKaIntervalSec, natConfig);
-        JS2PJ_STR(nat_obj, udpKaData, natConfig);
-      }
-      val = acct_obj->Get(String::New("mediaConfig"));
-      if (val->IsObject()) {
-        AccountMediaConfig mediaConfig = acct_cfg.mediaConfig;
-        Local<Object> media_obj = val->ToObject();
-
-        val = media_obj->Get(String::New("transportConfig"));
-        if (val->IsObject()) {
-          TransportConfig transportConfig = mediaConfig.transportConfig;
-          Local<Object> obj = val->ToObject();
-          JS2PJ_UINT(obj, port, transportConfig);
-          JS2PJ_UINT(obj, portRange, transportConfig);
-          JS2PJ_STR(obj, publicAddress, transportConfig);
-          JS2PJ_STR(obj, boundAddress, transportConfig);
-          JS2PJ_ENUM(obj, qosType, pj_qos_type, transportConfig);
-          //JS2PJ_INT(obj, qosParams, acct_cfg.transportConfig);
-
-          val = obj->Get(String::New("tlsConfig"));
-          if (val->IsObject()) {
-            TlsConfig tlsConfig = transportConfig.tlsConfig;
-            Local<Object> tls_obj = val->ToObject();
-            JS2PJ_STR(tls_obj, CaListFile, tlsConfig);
-            JS2PJ_STR(tls_obj, certFile, tlsConfig);
-            JS2PJ_STR(tls_obj, privKeyFile, tlsConfig);
-            JS2PJ_STR(tls_obj, password, tlsConfig);
-            JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tlsConfig);
-            // TODO: ciphers
-            JS2PJ_BOOL(tls_obj, verifyServer, tlsConfig);
-            JS2PJ_BOOL(tls_obj, verifyClient, tlsConfig);
-            JS2PJ_BOOL(tls_obj, requireClientCert, tlsConfig);
-            JS2PJ_UINT(tls_obj, msecTimeout, tlsConfig);
-            JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tlsConfig);
-            //JS2PJ_INT(tls_obj, qosParams, tlsConfig);
-            JS2PJ_BOOL(tls_obj, qosIgnoreError, tlsConfig);
-          }
-        }
-
-        JS2PJ_BOOL(media_obj, lockCodecEnabled, mediaConfig);
-        JS2PJ_BOOL(media_obj, streamKaEnabled, mediaConfig);
-        JS2PJ_ENUM(media_obj, srtpUse, pjmedia_srtp_use, mediaConfig);
-        JS2PJ_INT(media_obj, srtpSecureSignaling, mediaConfig);
-        JS2PJ_ENUM(media_obj, ipv6Use, pjsua_ipv6_use, mediaConfig);
-      }
-      val = acct_obj->Get(String::New("videoConfig"));
-      if (val->IsObject()) {
-        AccountVideoConfig videoConfig = acct_cfg.videoConfig;
-        (void)videoConfig; // ignore compiler warning
-        Local<Object> vid_obj = val->ToObject();
-        JS2PJ_BOOL(vid_obj, autoShowIncoming, videoConfig);
-        JS2PJ_BOOL(vid_obj, autoTransmitOutgoing, videoConfig);
-        JS2PJ_UINT(vid_obj, windowFlags, videoConfig);
-        JS2PJ_INT(vid_obj, defaultCaptureDevice, videoConfig);
-        JS2PJ_INT(vid_obj, defaultRenderDevice, videoConfig);
-        JS2PJ_ENUM(vid_obj,
-                   rateControlMethod,
-                   pjmedia_vid_stream_rc_method,
-                   videoConfig);
-        JS2PJ_UINT(vid_obj, rateControlBandwidth, videoConfig);
-      }
-    }
-
     bool isDefault = false;
-    if (args.Length() > 1 && args[1]->IsBoolean())
-      isDefault = args[1]->BooleanValue();
-    else if (args.Length() > 0 && args[0]->IsBoolean())
+    if (args.Length() > 0 && args[0]->IsObject()) {
+      acct_cfg = SIPSTERAccount::genConfig(args[0]->ToObject());
+
+      if (args.Length() > 1 && args[1]->IsBoolean())
+        isDefault = args[1]->BooleanValue();
+    } else if (args.Length() > 0 && args[0]->IsBoolean())
       isDefault = args[0]->BooleanValue();
 
     try {
@@ -1216,6 +1225,130 @@ public:
     );
 
     return args.This();
+  }
+
+  static Handle<Value> Modify(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
+
+    AccountConfig acct_cfg;
+    if (args.Length() > 0 && args[0]->IsObject())
+      acct_cfg = SIPSTERAccount::genConfig(args[0]->ToObject());
+    else {
+      return ThrowException(
+        Exception::Error(String::New("Missing renew argument"))
+      );
+    }
+
+    try {
+      acct->modify(acct_cfg);
+    } catch(Error& err) {
+      string errstr = "Account->modify() error: " + err.info();
+      ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> ValidGetter(Local<String> property,
+                                   const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(info.This());
+    return scope.Close(Boolean::New(acct->isValid()));
+  }
+
+  static Handle<Value> DefaultGetter(Local<String> property,
+                                     const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(info.This());
+    return scope.Close(Boolean::New(acct->isDefault()));
+  }
+
+  static void DefaultSetter(Local<String> property,
+                                     Local<Value> value,
+                                     const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(info.This());
+
+    if (value->BooleanValue()) {
+      try {
+        acct->setDefault();
+      } catch(Error& err) {
+        string errstr = "Account->setDefault() error: " + err.info();
+        ThrowException(Exception::Error(String::New(errstr.c_str())));
+      }
+    }
+  }
+
+  static Handle<Value> GetInfo(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
+
+    AccountInfo ai;
+    try {
+      ai = acct->getInfo();
+    } catch(Error& err) {
+      string errstr = "Account->getInfo() error: " + err.info();
+      ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    Local<Object> info_obj = Object::New();
+    info_obj->Set(String::New("uri"), String::New(ai.uri.c_str()));
+    info_obj->Set(String::New("regIsConfigured"), Boolean::New(ai.regIsConfigured));
+    info_obj->Set(String::New("regIsActive"), Boolean::New(ai.regIsActive));
+    info_obj->Set(String::New("regExpiresSec"), Integer::New(ai.regExpiresSec));
+    // TODO: onlineStatus*, regStatus*, regLastErr?
+
+    return scope.Close(info_obj);
+  }
+
+  static Handle<Value> SetRegistration(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
+
+    bool renew;
+    if (args.Length() > 0 && args[0]->IsBoolean())
+      renew = args[0]->BooleanValue();
+    else {
+      return ThrowException(
+        Exception::Error(String::New("Missing renew argument"))
+      );
+    }
+
+    try {
+      acct->setRegistration(renew);
+    } catch(Error& err) {
+      string errstr = "Account->setRegistration() error: " + err.info();
+      ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> SetTransport(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
+
+    TransportId tid;
+    if (args.Length() > 0
+        && SIPSTERTransport_constructor->HasInstance(args[0])) {
+      Local<Object> inst_obj = Local<Object>(Object::Cast(*args[0]));
+      SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(inst_obj);
+      tid = trans->transId;
+    } else {
+      return ThrowException(
+        Exception::Error(String::New("Missing Transport instance"))
+      );
+    }
+
+    try {
+      acct->setTransport(tid);
+    } catch(Error& err) {
+      string errstr = "Account->setTransport() error: " + err.info();
+      ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return Undefined();
   }
 
   static Handle<Value> MakeCall(const Arguments& args) {
@@ -1257,7 +1390,23 @@ public:
     SIPSTERAccount_constructor->InstanceTemplate()->SetInternalFieldCount(1);
     SIPSTERAccount_constructor->SetClassName(name);
 
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "modify", Modify);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "makeCall", MakeCall);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "getInfo", GetInfo);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor,
+                              "setRegistration",
+                              SetRegistration);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor,
+                              "setTransport",
+                              SetTransport);
+
+    SIPSTERAccount_constructor->PrototypeTemplate()
+                              ->SetAccessor(String::NewSymbol("valid"),
+                                            ValidGetter);
+    SIPSTERAccount_constructor->PrototypeTemplate()
+                              ->SetAccessor(String::NewSymbol("default"),
+                                            DefaultGetter,
+                                            DefaultSetter);
 
     target->Set(name, SIPSTERAccount_constructor->GetFunction());
   }

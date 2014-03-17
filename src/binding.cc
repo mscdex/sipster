@@ -228,6 +228,7 @@ static EpConfig ep_cfg;
 static Persistent<FunctionTemplate> SIPSTERCall_constructor;
 static Persistent<FunctionTemplate> SIPSTERAccount_constructor;
 static Persistent<FunctionTemplate> SIPSTERMedia_constructor;
+static Persistent<FunctionTemplate> SIPSTERTransport_constructor;
 static Persistent<String> emit_symbol;
 static Persistent<String> media_dir_none_symbol;
 static Persistent<String> media_dir_outbound_symbol;
@@ -659,6 +660,225 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "transfer", Transfer);
 
     target->Set(name, SIPSTERCall_constructor->GetFunction());
+  }
+};
+
+class SIPSTERTransport : public ObjectWrap {
+public:
+  Persistent<Function> emit;
+  TransportId transId;
+  bool enabled;
+
+  SIPSTERTransport() : transId(-1), enabled(false) {}
+  ~SIPSTERTransport() {
+    emit.Dispose();
+    emit.Clear();
+    if (transId > -1) {
+      try {
+        ep->transportClose(transId);
+        uv_mutex_lock(&async_mutex);
+        uv_unref(reinterpret_cast<uv_handle_t*>(&dumb));
+        uv_mutex_unlock(&async_mutex);
+      } catch(Error& err) {
+        string errstr = "transportClose error: " + err.info();
+        ThrowException(Exception::Error(String::New(errstr.c_str())));
+      }
+    }
+  }
+
+  static Handle<Value> New(const Arguments& args) {
+    HandleScope scope;
+
+    if (!args.IsConstructCall()) {
+      return ThrowException(Exception::TypeError(
+        String::New("Use `new` to create instances of this object."))
+      );
+    }
+
+    TransportConfig tp_cfg;
+    string errstr;
+
+    Local<Value> val;
+    if (args.Length() > 0 && args[0]->IsObject()) {
+      Local<Object> obj = args[0]->ToObject();
+      JS2PJ_UINT(obj, port, tp_cfg);
+      JS2PJ_UINT(obj, portRange, tp_cfg);
+      JS2PJ_STR(obj, publicAddress, tp_cfg);
+      JS2PJ_STR(obj, boundAddress, tp_cfg);
+      JS2PJ_ENUM(obj, qosType, pj_qos_type, tp_cfg);
+      //JS2PJ_INT(obj, qosParams, tp_cfg);
+
+      val = obj->Get(String::New("tlsConfig"));
+      if (val->IsObject()) {
+        Local<Object> tls_obj = val->ToObject();
+        JS2PJ_STR(tls_obj, CaListFile, tp_cfg.tlsConfig);
+        JS2PJ_STR(tls_obj, certFile, tp_cfg.tlsConfig);
+        JS2PJ_STR(tls_obj, privKeyFile, tp_cfg.tlsConfig);
+        JS2PJ_STR(tls_obj, password, tp_cfg.tlsConfig);
+        JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tp_cfg.tlsConfig);
+        // TODO: ciphers
+        JS2PJ_BOOL(tls_obj, verifyServer, tp_cfg.tlsConfig);
+        JS2PJ_BOOL(tls_obj, verifyClient, tp_cfg.tlsConfig);
+        JS2PJ_BOOL(tls_obj, requireClientCert, tp_cfg.tlsConfig);
+        JS2PJ_UINT(tls_obj, msecTimeout, tp_cfg.tlsConfig);
+        JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tp_cfg.tlsConfig);
+        //JS2PJ_INT(tls_obj, qosParams, tp_cfg.tlsConfig);
+        JS2PJ_BOOL(tls_obj, qosIgnoreError, tp_cfg.tlsConfig);
+      }
+    }
+
+    val.Clear();
+    pjsip_transport_type_e transportType = PJSIP_TRANSPORT_UNSPECIFIED;
+    if (args.Length() > 0 && args[0]->IsString())
+      val = args[0];
+    else if (args.Length() > 1 && args[1]->IsString())
+      val = args[1];
+    if (!val.IsEmpty()) {
+      const char* typecstr = *String::AsciiValue(val->ToString());
+      if (strcasecmp(typecstr, "udp") == 0)
+        transportType = PJSIP_TRANSPORT_UDP;
+      else if (strcasecmp(typecstr, "tcp") == 0)
+        transportType = PJSIP_TRANSPORT_TCP;
+#if defined(PJ_HAS_IPV6) && PJ_HAS_IPV6!=0
+      else if (strcasecmp(typecstr, "udp6") == 0)
+        transportType = PJSIP_TRANSPORT_UDP6;
+      else if (strcasecmp(typecstr, "tcp6") == 0)
+        transportType = PJSIP_TRANSPORT_TCP6;
+#endif
+#if defined(PJSIP_HAS_TLS_TRANSPORT) && PJSIP_HAS_TLS_TRANSPORT!=0
+      else if (strcasecmp(typecstr, "tls") == 0)
+        transportType = PJSIP_TRANSPORT_TLS;
+# if defined(PJ_HAS_IPV6) && PJ_HAS_IPV6!=0
+      else if (strcasecmp(typecstr, "tls6") == 0)
+        transportType = PJSIP_TRANSPORT_TLS6;
+# endif
+#endif
+      else {
+        return ThrowException(
+          Exception::Error(String::New("Unsupported transport type"))
+        );
+      }
+    }
+
+    TransportId tid;
+    try {
+      tid = ep->transportCreate(transportType, tp_cfg);
+    } catch(Error& err) {
+      errstr = "transportCreate error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    uv_mutex_lock(&async_mutex);
+    uv_ref(reinterpret_cast<uv_handle_t*>(&dumb));
+    uv_mutex_unlock(&async_mutex);
+
+    SIPSTERTransport* trans = new SIPSTERTransport();
+
+    trans->Wrap(args.This());
+
+    trans->transId = tid;
+    trans->enabled = true;
+    trans->emit = Persistent<Function>::New(
+      Local<Function>::Cast(trans->handle_->Get(emit_symbol))
+    );
+
+    return args.This();
+  }
+
+  static Handle<Value> GetInfo(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(args.This());
+
+    TransportInfo ti;
+
+    try {
+      ti = ep->transportGetInfo(trans->transId);
+    } catch(Error& err) {
+      string errstr = "transportGetInfo error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    Local<Object> info_obj = Object::New();
+    info_obj->Set(String::New("type"), String::New(ti.typeName.c_str()));
+    info_obj->Set(String::New("info"), String::New(ti.info.c_str()));
+    info_obj->Set(String::New("flags"), Integer::NewFromUnsigned(ti.flags));
+    info_obj->Set(String::New("localAddress"),
+                  String::New(ti.localAddress.c_str()));
+    info_obj->Set(String::New("localName"),
+                  String::New(ti.localName.c_str()));
+    info_obj->Set(String::New("usageCount"),
+                  Integer::NewFromUnsigned(ti.usageCount));
+
+    return scope.Close(info_obj);
+  }
+
+  static Handle<Value> Enable(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(args.This());
+
+    if (!trans->enabled) {
+      try {
+        ep->transportSetEnable(trans->transId, true);
+      } catch(Error& err) {
+        string errstr = "transportSetEnable error: " + err.info();
+        return ThrowException(Exception::Error(String::New(errstr.c_str())));
+      }
+      trans->enabled = true;
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> Disable(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(args.This());
+
+    if (trans->enabled) {
+      try {
+        ep->transportSetEnable(trans->transId, false);
+      } catch(Error& err) {
+        string errstr = "transportSetEnable error: " + err.info();
+        return ThrowException(Exception::Error(String::New(errstr.c_str())));
+      }
+      trans->enabled = false;
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> EnabledGetter(Local<String> property,
+                                     const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(info.This());
+
+    return scope.Close(Boolean::New(trans->enabled));
+  }
+
+  static void Initialize(Handle<Object> target) {
+    HandleScope scope;
+
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
+    Local<String> name = String::NewSymbol("Transport");
+
+    SIPSTERTransport_constructor = Persistent<FunctionTemplate>::New(tpl);
+    SIPSTERTransport_constructor->InstanceTemplate()->SetInternalFieldCount(1);
+    SIPSTERTransport_constructor->SetClassName(name);
+
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
+                              "getInfo",
+                              GetInfo);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
+                              "enable",
+                              Enable);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
+                              "disable",
+                              Disable);
+
+    SIPSTERTransport_constructor->PrototypeTemplate()
+                                ->SetAccessor(String::NewSymbol("enabled"),
+                                              EnabledGetter);
+
+    target->Set(name, SIPSTERTransport_constructor->GetFunction());
   }
 };
 
@@ -1555,163 +1775,6 @@ static Handle<Value> EPMediaActivePorts(const Arguments& args) {
   return scope.Close(Integer::NewFromUnsigned(ep->mediaActivePorts()));
 }
 
-static Handle<Value> EPTransportSetEnable(const Arguments& args) {
-  HandleScope scope;
-
-  try {
-    ep->transportSetEnable(args[0]->Int32Value(), args[1]->BooleanValue());
-  } catch(Error& err) {
-    string errstr = "transportSetEnable error: " + err.info();
-    return ThrowException(Exception::Error(String::New(errstr.c_str())));
-  }
-  return Undefined();
-}
-
-static Handle<Value> EPTransportCreate(const Arguments& args) {
-  HandleScope scope;
-  TransportConfig tp_cfg;
-  string errstr;
-
-  Local<Value> val;
-  if (args.Length() > 0 && args[0]->IsObject()) {
-    Local<Object> obj = args[0]->ToObject();
-    JS2PJ_UINT(obj, port, tp_cfg);
-    JS2PJ_UINT(obj, portRange, tp_cfg);
-    JS2PJ_STR(obj, publicAddress, tp_cfg);
-    JS2PJ_STR(obj, boundAddress, tp_cfg);
-    JS2PJ_ENUM(obj, qosType, pj_qos_type, tp_cfg);
-    //JS2PJ_INT(obj, qosParams, tp_cfg);
-
-    val = obj->Get(String::New("tlsConfig"));
-    if (val->IsObject()) {
-      Local<Object> tls_obj = val->ToObject();
-      JS2PJ_STR(tls_obj, CaListFile, tp_cfg.tlsConfig);
-      JS2PJ_STR(tls_obj, certFile, tp_cfg.tlsConfig);
-      JS2PJ_STR(tls_obj, privKeyFile, tp_cfg.tlsConfig);
-      JS2PJ_STR(tls_obj, password, tp_cfg.tlsConfig);
-      JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tp_cfg.tlsConfig);
-      // TODO: ciphers
-      JS2PJ_BOOL(tls_obj, verifyServer, tp_cfg.tlsConfig);
-      JS2PJ_BOOL(tls_obj, verifyClient, tp_cfg.tlsConfig);
-      JS2PJ_BOOL(tls_obj, requireClientCert, tp_cfg.tlsConfig);
-      JS2PJ_UINT(tls_obj, msecTimeout, tp_cfg.tlsConfig);
-      JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tp_cfg.tlsConfig);
-      //JS2PJ_INT(tls_obj, qosParams, tp_cfg.tlsConfig);
-      JS2PJ_BOOL(tls_obj, qosIgnoreError, tp_cfg.tlsConfig);
-    }
-  }
-
-  pjsip_transport_type_e transportType = PJSIP_TRANSPORT_UDP;
-  /*String::AsciiValue typestr(args[0]->ToString());
-  const char* typecstr = *typestr;
-  if (strcasecmp(typecstr, "udp") == 0)
-    transportType = PJSIP_TRANSPORT_UDP;
-  else if (strcasecmp(typecstr, "tcp") == 0)
-    transportType = PJSIP_TRANSPORT_TCP;
-#if defined(PJ_HAS_IPV6) && PJ_HAS_IPV6!=0
-  else if (strcasecmp(typecstr, "udp6") == 0)
-    transportType = PJSIP_TRANSPORT_UDP6;
-  else if (strcasecmp(typecstr, "tcp6") == 0)
-    transportType = PJSIP_TRANSPORT_TCP6;
-#endif
-#if defined(PJSIP_HAS_TLS_TRANSPORT) && PJSIP_HAS_TLS_TRANSPORT!=0
-  else if (strcasecmp(typecstr, "tls") == 0)
-    transportType = PJSIP_TRANSPORT_TLS;
-# if defined(PJ_HAS_IPV6) && PJ_HAS_IPV6!=0
-  else if (strcasecmp(typecstr, "tls6") == 0)
-    transportType = PJSIP_TRANSPORT_TLS6;
-# endif
-#endif
-  else {
-    return ThrowException(
-      Exception::Error(String::New("Unsupported transport type"))
-    );
-  }*/
-
-  int tid;
-  try {
-    tid = ep->transportCreate(transportType, tp_cfg);
-  } catch(Error& err) {
-    errstr = "transportCreate error: " + err.info();
-    return ThrowException(Exception::Error(String::New(errstr.c_str())));
-  }
-
-  uv_mutex_lock(&async_mutex);
-  uv_ref(reinterpret_cast<uv_handle_t*>(&dumb));
-  uv_mutex_unlock(&async_mutex);
-  return scope.Close(Integer::New(tid));
-}
-
-static Handle<Value> EPTransportClose(const Arguments& args) {
-  HandleScope scope;
-
-  try {
-    ep->transportClose(args[0]->Int32Value());
-    uv_mutex_lock(&async_mutex);
-    uv_unref(reinterpret_cast<uv_handle_t*>(&dumb));
-    uv_mutex_unlock(&async_mutex);
-  } catch(Error& err) {
-    string errstr = "transportClose error: " + err.info();
-    return ThrowException(Exception::Error(String::New(errstr.c_str())));
-  }
-  return Undefined();
-}
-
-static Handle<Value> EPTransportGetInfo(const Arguments& args) {
-  HandleScope scope;
-
-  try {
-    TransportInfo tp_info = ep->transportGetInfo(args[0]->Int32Value());
-    Local<Object> info = Object::New();
-    Local<Array> flags = Array::New();
-
-    string type;
-    switch (tp_info.type) {
-      case PJSIP_TRANSPORT_UDP:
-        type = "udp";
-      break;
-      case PJSIP_TRANSPORT_TCP:
-        type = "tcp";
-      break;
-      case PJSIP_TRANSPORT_TLS:
-        type = "tls";
-      break;
-      case PJSIP_TRANSPORT_UDP6:
-        type = "udp6";
-      break;
-      case PJSIP_TRANSPORT_TCP6:
-        type = "tcp6";
-      break;
-      case PJSIP_TRANSPORT_TLS6:
-        type = "tls6";
-      break;
-      default:
-        type = "unspecified";
-    }
-
-    int i = 0;
-    if (tp_info.flags & PJSIP_TRANSPORT_RELIABLE)
-      flags->Set(i++, String::New("reliable"));
-    if (tp_info.flags & PJSIP_TRANSPORT_SECURE)
-      flags->Set(i++, String::New("secure"));
-    if (tp_info.flags & PJSIP_TRANSPORT_DATAGRAM)
-      flags->Set(i++, String::New("datagram"));
-
-    info->Set(String::New("type"), String::New(type.c_str()));
-    info->Set(String::New("typeName"), String::New(tp_info.typeName.c_str()));
-    info->Set(String::New("info"), String::New(tp_info.info.c_str()));
-    info->Set(String::New("flags"), flags);
-    info->Set(String::New("localAddress"), String::New(tp_info.localAddress.c_str()));
-    info->Set(String::New("localName"), String::New(tp_info.localName.c_str()));
-    info->Set(String::New("usageCount"), Integer::NewFromUnsigned(tp_info.usageCount));
-
-    return scope.Close(info);
-  } catch(Error& err) {
-    string errstr = "transportGetInfo error: " + err.info();
-    return ThrowException(Exception::Error(String::New(errstr.c_str())));
-  }
-}
-
 extern "C" {
   void init(Handle<Object> target) {
     HandleScope scope;
@@ -1756,6 +1819,7 @@ extern "C" {
     SIPSTERAccount::Initialize(target);
     SIPSTERCall::Initialize(target);
     SIPSTERMedia::Initialize(target);
+    SIPSTERTransport::Initialize(target);
 
     target->Set(String::NewSymbol("version"),
                 FunctionTemplate::New(EPVersion)->GetFunction());
@@ -1771,14 +1835,6 @@ extern "C" {
                 FunctionTemplate::New(EPHangupAllCalls)->GetFunction());
     target->Set(String::NewSymbol("mediaActivePorts"),
                 FunctionTemplate::New(EPMediaActivePorts)->GetFunction());
-    target->Set(String::NewSymbol("transportSetEnable"),
-                FunctionTemplate::New(EPTransportSetEnable)->GetFunction());
-    target->Set(String::NewSymbol("transportCreate"),
-                FunctionTemplate::New(EPTransportCreate)->GetFunction());
-    target->Set(String::NewSymbol("transportClose"),
-                FunctionTemplate::New(EPTransportClose)->GetFunction());
-    target->Set(String::NewSymbol("transportGetInfo"),
-                FunctionTemplate::New(EPTransportGetInfo)->GetFunction());
 
     target->Set(String::NewSymbol("createRecorder"),
                 FunctionTemplate::New(CreateRecorder)->GetFunction());

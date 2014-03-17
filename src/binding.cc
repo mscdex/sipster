@@ -1865,12 +1865,6 @@ static Handle<Value> EPInit(const Arguments& args) {
     }
   }
 
-
-  /*ep_cfg.logConfig.msgLogging = PJ_LOG_HAS_NEWLINE | PJ_LOG_HAS_COLOR | PJ_LOG_HAS_LEVEL_TEXT;
-  ep_cfg.logConfig.level = 5;
-  ep_cfg.logConfig.consoleLevel = 5;
-  ep_cfg.logConfig.decor = PJ_LOG_HAS_NEWLINE | PJ_LOG_HAS_COLOR | PJ_LOG_HAS_LEVEL_TEXT;*/
-
   Local<Value> val;
   if (args.Length() > 0 && args[0]->IsObject()) {
     Local<Object> cfg_obj = args[0]->ToObject();
@@ -1933,7 +1927,6 @@ static Handle<Value> EPInit(const Arguments& args) {
       JS2PJ_UINT(log_obj, decor, logConfig);
       JS2PJ_STR(log_obj, filename, logConfig);
       JS2PJ_UINT(log_obj, fileFlags, logConfig);
-      // TODO: LogWriter function?
 
       val = log_obj->Get(String::New("writer"));
       if (val->IsFunction()) {

@@ -916,7 +916,7 @@ public:
 
     val = acct_obj->Get(String::New("regConfig"));
     if (val->IsObject()) {
-      AccountRegConfig regConfig = acct_cfg.regConfig;
+      AccountRegConfig regConfig;
       Local<Object> reg_obj = val->ToObject();
       JS2PJ_STR(reg_obj, registrarUri, regConfig);
       JS2PJ_BOOL(reg_obj, registerOnAdd, regConfig);
@@ -947,10 +947,12 @@ public:
       JS2PJ_BOOL(reg_obj, dropCallsOnFail, regConfig);
       JS2PJ_UINT(reg_obj, unregWaitSec, regConfig);
       JS2PJ_UINT(reg_obj, proxyUse, regConfig);
+
+      acct_cfg.regConfig = regConfig;
     }
     val = acct_obj->Get(String::New("sipConfig"));
     if (val->IsObject()) {
-      AccountSipConfig sipConfig = acct_cfg.sipConfig;
+      AccountSipConfig sipConfig;
       Local<Object> sip_obj = val->ToObject();
 
       val = sip_obj->Get(String::New("authCreds"));
@@ -1021,21 +1023,24 @@ public:
       JS2PJ_BOOL(sip_obj, authInitialEmpty, sipConfig);
       JS2PJ_STR(sip_obj, authInitialAlgorithm, sipConfig);
       // TODO: transportId
+
+      acct_cfg.sipConfig = sipConfig;
     }
     val = acct_obj->Get(String::New("callConfig"));
     if (val->IsObject()) {
-      AccountCallConfig callConfig = acct_cfg.callConfig;
+      AccountCallConfig callConfig;
       Local<Object> call_obj = val->ToObject();
-      (void)callConfig; // ignore compiler warning
       JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, callConfig);
       JS2PJ_ENUM(call_obj, prackUse, pjsua_100rel_use, callConfig);
       JS2PJ_ENUM(call_obj, timerUse, pjsua_sip_timer_use, callConfig);
       JS2PJ_UINT(call_obj, timerMinSESec, callConfig);
       JS2PJ_UINT(call_obj, timerSessExpiresSec, callConfig);
+
+      acct_cfg.callConfig = callConfig;
     }
     val = acct_obj->Get(String::New("presConfig"));
     if (val->IsObject()) {
-      AccountPresConfig presConfig = acct_cfg.presConfig;
+      AccountPresConfig presConfig;
       Local<Object> pres_obj = val->ToObject();
 
       val = pres_obj->Get(String::New("headers"));
@@ -1061,18 +1066,21 @@ public:
       JS2PJ_BOOL(pres_obj, publishQueue, presConfig);
       JS2PJ_UINT(pres_obj, publishShutdownWaitMsec, presConfig);
       JS2PJ_STR(pres_obj, pidfTupleId, presConfig);
+
+      acct_cfg.presConfig = presConfig;
     }
     val = acct_obj->Get(String::New("mwiConfig"));
     if (val->IsObject()) {
-      AccountMwiConfig mwiConfig = acct_cfg.mwiConfig;
-      (void)mwiConfig; // ignore compiler warning
+      AccountMwiConfig mwiConfig;
       Local<Object> mwi_obj = val->ToObject();
       JS2PJ_BOOL(mwi_obj, enabled, mwiConfig);
       JS2PJ_UINT(mwi_obj, expirationSec, mwiConfig);
+
+      acct_cfg.mwiConfig = mwiConfig;
     }
     val = acct_obj->Get(String::New("natConfig"));
     if (val->IsObject()) {
-      AccountNatConfig natConfig = acct_cfg.natConfig;
+      AccountNatConfig natConfig;
       Local<Object> nat_obj = val->ToObject();
       JS2PJ_ENUM(nat_obj, sipStunUse, pjsua_stun_use, natConfig);
       JS2PJ_ENUM(nat_obj, mediaStunUse, pjsua_stun_use, natConfig);
@@ -1098,15 +1106,17 @@ public:
       JS2PJ_STR(nat_obj, sipOutboundRegId, natConfig);
       JS2PJ_UINT(nat_obj, udpKaIntervalSec, natConfig);
       JS2PJ_STR(nat_obj, udpKaData, natConfig);
+
+      acct_cfg.natConfig = natConfig;
     }
     val = acct_obj->Get(String::New("mediaConfig"));
     if (val->IsObject()) {
-      AccountMediaConfig mediaConfig = acct_cfg.mediaConfig;
+      AccountMediaConfig mediaConfig;
       Local<Object> media_obj = val->ToObject();
 
       val = media_obj->Get(String::New("transportConfig"));
       if (val->IsObject()) {
-        TransportConfig transportConfig = mediaConfig.transportConfig;
+        TransportConfig transportConfig;
         Local<Object> obj = val->ToObject();
         JS2PJ_UINT(obj, port, transportConfig);
         JS2PJ_UINT(obj, portRange, transportConfig);
@@ -1117,7 +1127,7 @@ public:
 
         val = obj->Get(String::New("tlsConfig"));
         if (val->IsObject()) {
-          TlsConfig tlsConfig = transportConfig.tlsConfig;
+          TlsConfig tlsConfig;
           Local<Object> tls_obj = val->ToObject();
           JS2PJ_STR(tls_obj, CaListFile, tlsConfig);
           JS2PJ_STR(tls_obj, certFile, tlsConfig);
@@ -1132,7 +1142,11 @@ public:
           JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tlsConfig);
           //JS2PJ_INT(tls_obj, qosParams, tlsConfig);
           JS2PJ_BOOL(tls_obj, qosIgnoreError, tlsConfig);
+
+          transportConfig.tlsConfig = tlsConfig;
         }
+
+        mediaConfig.transportConfig = transportConfig;
       }
 
       JS2PJ_BOOL(media_obj, lockCodecEnabled, mediaConfig);
@@ -1140,11 +1154,12 @@ public:
       JS2PJ_ENUM(media_obj, srtpUse, pjmedia_srtp_use, mediaConfig);
       JS2PJ_INT(media_obj, srtpSecureSignaling, mediaConfig);
       JS2PJ_ENUM(media_obj, ipv6Use, pjsua_ipv6_use, mediaConfig);
+
+      acct_cfg.mediaConfig = mediaConfig;
     }
     val = acct_obj->Get(String::New("videoConfig"));
     if (val->IsObject()) {
-      AccountVideoConfig videoConfig = acct_cfg.videoConfig;
-      (void)videoConfig; // ignore compiler warning
+      AccountVideoConfig videoConfig;
       Local<Object> vid_obj = val->ToObject();
       JS2PJ_BOOL(vid_obj, autoShowIncoming, videoConfig);
       JS2PJ_BOOL(vid_obj, autoTransmitOutgoing, videoConfig);
@@ -1156,6 +1171,8 @@ public:
                  pjmedia_vid_stream_rc_method,
                  videoConfig);
       JS2PJ_UINT(vid_obj, rateControlBandwidth, videoConfig);
+
+      acct_cfg.videoConfig = videoConfig;
     }
 
     return acct_cfg;
@@ -1859,7 +1876,7 @@ static Handle<Value> EPInit(const Arguments& args) {
     Local<Object> cfg_obj = args[0]->ToObject();
     val = cfg_obj->Get(String::New("uaConfig"));
     if (val->IsObject()) {
-      UaConfig uaConfig = ep_cfg.uaConfig;
+      UaConfig uaConfig;
       Local<Object> ua_obj = val->ToObject();
       JS2PJ_UINT(ua_obj, maxCalls, uaConfig);
       JS2PJ_UINT(ua_obj, threadCnt, uaConfig);
@@ -1902,11 +1919,13 @@ static Handle<Value> EPInit(const Arguments& args) {
       JS2PJ_BOOL(ua_obj, stunIgnoreFailure, uaConfig);
       JS2PJ_INT(ua_obj, natTypeInSdp, uaConfig);
       JS2PJ_BOOL(ua_obj, mwiUnsolicitedEnabled, uaConfig);
+
+      ep_cfg.uaConfig = uaConfig;
     }
 
     val = cfg_obj->Get(String::New("logConfig"));
     if (val->IsObject()) {
-      LogConfig logConfig = ep_cfg.logConfig;
+      LogConfig logConfig;
       Local<Object> log_obj = val->ToObject();
       JS2PJ_UINT(log_obj, msgLogging, logConfig);
       JS2PJ_UINT(log_obj, level, logConfig);
@@ -1933,8 +1952,7 @@ static Handle<Value> EPInit(const Arguments& args) {
 
     val = cfg_obj->Get(String::New("medConfig"));
     if (val->IsObject()) {
-      MediaConfig medConfig = ep_cfg.medConfig;
-      (void)medConfig;
+      MediaConfig medConfig;
       Local<Object> med_obj = val->ToObject();
       JS2PJ_UINT(med_obj, clockRate, medConfig);
       JS2PJ_UINT(med_obj, sndClockRate, medConfig);
@@ -1959,6 +1977,8 @@ static Handle<Value> EPInit(const Arguments& args) {
       JS2PJ_INT(med_obj, jbMax, medConfig);
       JS2PJ_INT(med_obj, sndAutoCloseTime, medConfig);
       JS2PJ_BOOL(med_obj, vidPreviewEnableNative, medConfig);
+
+      ep_cfg.medConfig = medConfig;
     }
   }
 

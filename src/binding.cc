@@ -139,6 +139,17 @@ static Persistent<String> CALLDTMF_DTMFC_symbol;
 static Persistent<String> CALLDTMF_DTMFD_symbol;
 // =============================================================================
 
+// Reg/Unreg starting event ====================================================
+#define N_REGSTARTING_FIELDS 1
+#define REGSTARTING_FIELDS                                          \
+  X(REGSTARTING, bool, renew, Boolean, renew)
+struct EV_ARGS_REGSTARTING {
+#define X(kind, ctype, name, v8type, valconv) ctype name;
+  REGSTARTING_FIELDS
+#undef X
+};
+// =============================================================================
+
 // AudioMediaPlayer EOF event ==================================================
 /*#define N_PLAYEREOF_FIELDS 0
 #define CALLDTMF_FIELDS
@@ -154,6 +165,7 @@ struct EV_ARGS_PLAYEREOF {
   INCALL_FIELDS
   CALLDTMF_FIELDS
   REGSTATE_FIELDS
+  REGSTARTING_FIELDS
 #undef X
 #define EVENT_TYPES                                                 \
   X(INCALL)                                                         \
@@ -161,7 +173,8 @@ struct EV_ARGS_PLAYEREOF {
   X(CALLDTMF)                                                       \
   X(REGSTATE)                                                       \
   X(CALLMEDIA)                                                      \
-  X(PLAYEREOF)
+  X(PLAYEREOF)                                                      \
+  X(REGSTARTING)
 #define EVENT_SYMBOLS                                               \
   X(INCALL, call)                                                   \
   X(CALLSTATE, calling)                                             \
@@ -176,7 +189,9 @@ struct EV_ARGS_PLAYEREOF {
   X(REGSTATE, unregistered)                                         \
   X(REGSTATE, state)                                                \
   X(CALLMEDIA, media)                                               \
-  X(PLAYEREOF, eof)
+  X(PLAYEREOF, eof)                                                 \
+  X(REGSTARTING, registering)                                       \
+  X(REGSTARTING, unregistering)
 
 // start generic event-related definitions =====================================
 #define X(kind, literal)                                            \
@@ -655,6 +670,15 @@ public:
   ~SIPSTERAccount() {
     emit.Dispose();
     emit.Clear();
+  }
+
+  virtual void onRegStarted(OnRegStartedParam &prm) {
+    SETUP_EVENT(REGSTARTING);
+    ev.acct = this;
+
+    args->renew = prm.renew;
+
+    ENQUEUE_EVENT(ev);
   }
 
   virtual void onRegState(OnRegStateParam &prm) {
@@ -1206,6 +1230,20 @@ void dumb_cb(uv_async_t* handle, int status) {
         media->emit->Call(media->handle_, 1, emit_argv);
       }
       break;
+      case EVENT_REGSTARTING: {
+        HandleScope scope;
+        EV_ARGS_REGSTARTING* args = reinterpret_cast<EV_ARGS_REGSTARTING*>(ev.args);
+        SIPSTERAccount* acct = ev.acct;
+
+        Handle<Value> emit_argv[1] = {
+          (args->renew
+           ? ev_REGSTARTING_registering_symbol
+           : ev_REGSTARTING_unregistering_symbol)
+        };
+        acct->emit->Call(acct->handle_, 1, emit_argv);
+        delete args;
+      }
+      break;
     }
     if (try_catch.HasCaught())
       FatalException(try_catch);
@@ -1687,6 +1725,7 @@ extern "C" {
   INCALL_FIELDS
   CALLDTMF_FIELDS
   REGSTATE_FIELDS
+  REGSTARTING_FIELDS
 #undef X
 
     CALLDTMF_DTMF0_symbol = NODE_PSYMBOL("0");

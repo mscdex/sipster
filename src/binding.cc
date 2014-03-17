@@ -359,7 +359,7 @@ public:
   }
 
   static Handle<Value> DirGetter(Local<String> property,
-                                 const AccessorInfo &info) {
+                                 const AccessorInfo& info) {
     HandleScope scope;
     SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
     Handle<String> str;
@@ -482,7 +482,7 @@ public:
       Local<Function>::Cast(call->handle_->Get(emit_symbol))
     );
 
-    return call->handle_;
+    return args.This();
   }
 
   static Handle<Value> Answer(const Arguments& args) {
@@ -990,7 +990,6 @@ public:
     }
 
     acct->Wrap(args.This());
-    //acct->Ref();
 
     acct->emit = Persistent<Function>::New(
       Local<Function>::Cast(acct->handle_->Get(emit_symbol))

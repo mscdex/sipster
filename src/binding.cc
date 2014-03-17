@@ -75,8 +75,8 @@ class SIPSTERMedia;
 
 // registration change event(s) ================================================
 #define N_REGSTATE_FIELDS 2
-#define REGSTATE_FIELDS                                               \
-  X(REGSTATE, bool, active, Boolean, active)                          \
+#define REGSTATE_FIELDS                                             \
+  X(REGSTATE, bool, active, Boolean, active)                        \
   X(REGSTATE, int, statusCode, Integer, statusCode)
 struct EV_ARGS_REGSTATE {
 #define X(kind, ctype, name, v8type, valconv) ctype name;

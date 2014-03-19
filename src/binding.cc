@@ -1232,7 +1232,7 @@ public:
     string errstr;
     bool isDefault = false;
     if (args.Length() > 0 && args[0]->IsObject()) {
-      acct_cfg = SIPSTERAccount::genConfig(args[0]->ToObject());
+      acct_cfg = genConfig(args[0]->ToObject());
 
       if (args.Length() > 1 && args[1]->IsBoolean())
         isDefault = args[1]->BooleanValue();
@@ -1262,7 +1262,7 @@ public:
 
     AccountConfig acct_cfg;
     if (args.Length() > 0 && args[0]->IsObject())
-      acct_cfg = SIPSTERAccount::genConfig(args[0]->ToObject());
+      acct_cfg = genConfig(args[0]->ToObject());
     else {
       return ThrowException(
         Exception::Error(String::New("Missing renew argument"))

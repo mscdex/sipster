@@ -720,7 +720,26 @@ public:
       JS2PJ_STR(obj, publicAddress, tp_cfg);
       JS2PJ_STR(obj, boundAddress, tp_cfg);
       JS2PJ_ENUM(obj, qosType, pj_qos_type, tp_cfg);
-      //JS2PJ_INT(obj, qosParams, tp_cfg);
+
+      val = obj->Get(String::New("qosParams"));
+      if (val->IsObject()) {
+        HandleScope scope;
+        pj_qos_params qos_params;
+        Local<Object> qos_obj = val->ToObject();
+        Local<Value> flags_val = qos_obj->Get(String::New("flags"));
+        Local<Value> dscp_val = qos_obj->Get(String::New("dscp_val"));
+        Local<Value> so_prio_val = qos_obj->Get(String::New("so_prio"));
+        Local<Value> wmm_prio_val = qos_obj->Get(String::New("wmm_prio"));
+        if (flags_val->IsUint32())
+          qos_params.flags = static_cast<pj_uint8_t>(flags_val->Uint32Value());
+        if (dscp_val->IsUint32())
+          qos_params.dscp_val = static_cast<pj_uint8_t>(dscp_val->Uint32Value());
+        if (so_prio_val->IsUint32())
+          qos_params.so_prio = static_cast<pj_uint8_t>(so_prio_val->Uint32Value());
+        if (wmm_prio_val->IsUint32())
+          qos_params.wmm_prio = static_cast<pj_qos_wmm_prio>(wmm_prio_val->Uint32Value());
+        tp_cfg.qosParams = qos_params;
+      }
 
       val = obj->Get(String::New("tlsConfig"));
       if (val->IsObject()) {
@@ -737,7 +756,27 @@ public:
         JS2PJ_BOOL(tls_obj, requireClientCert, tp_cfg.tlsConfig);
         JS2PJ_UINT(tls_obj, msecTimeout, tp_cfg.tlsConfig);
         JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tp_cfg.tlsConfig);
-        //JS2PJ_INT(tls_obj, qosParams, tp_cfg.tlsConfig);
+
+        val = tls_obj->Get(String::New("qosParams"));
+        if (val->IsObject()) {
+          HandleScope scope;
+          pj_qos_params qos_params;
+          Local<Object> qos_obj = val->ToObject();
+          Local<Value> flags_val = qos_obj->Get(String::New("flags"));
+          Local<Value> dscp_val = qos_obj->Get(String::New("dscp_val"));
+          Local<Value> so_prio_val = qos_obj->Get(String::New("so_prio"));
+          Local<Value> wmm_prio_val = qos_obj->Get(String::New("wmm_prio"));
+          if (flags_val->IsUint32())
+            qos_params.flags = static_cast<pj_uint8_t>(flags_val->Uint32Value());
+          if (dscp_val->IsUint32())
+            qos_params.dscp_val = static_cast<pj_uint8_t>(dscp_val->Uint32Value());
+          if (so_prio_val->IsUint32())
+            qos_params.so_prio = static_cast<pj_uint8_t>(so_prio_val->Uint32Value());
+          if (wmm_prio_val->IsUint32())
+            qos_params.wmm_prio = static_cast<pj_qos_wmm_prio>(wmm_prio_val->Uint32Value());
+          tp_cfg.tlsConfig.qosParams = qos_params;
+        }
+
         JS2PJ_BOOL(tls_obj, qosIgnoreError, tp_cfg.tlsConfig);
       }
     }
@@ -1144,7 +1183,26 @@ public:
         JS2PJ_STR(obj, publicAddress, transportConfig);
         JS2PJ_STR(obj, boundAddress, transportConfig);
         JS2PJ_ENUM(obj, qosType, pj_qos_type, transportConfig);
-        //JS2PJ_INT(obj, qosParams, acct_cfg.transportConfig);
+
+        val = obj->Get(String::New("qosParams"));
+        if (val->IsObject()) {
+          HandleScope scope;
+          pj_qos_params qos_params;
+          Local<Object> qos_obj = val->ToObject();
+          Local<Value> flags_val = qos_obj->Get(String::New("flags"));
+          Local<Value> dscp_val = qos_obj->Get(String::New("dscp_val"));
+          Local<Value> so_prio_val = qos_obj->Get(String::New("so_prio"));
+          Local<Value> wmm_prio_val = qos_obj->Get(String::New("wmm_prio"));
+          if (flags_val->IsUint32())
+            qos_params.flags = static_cast<pj_uint8_t>(flags_val->Uint32Value());
+          if (dscp_val->IsUint32())
+            qos_params.dscp_val = static_cast<pj_uint8_t>(dscp_val->Uint32Value());
+          if (so_prio_val->IsUint32())
+            qos_params.so_prio = static_cast<pj_uint8_t>(so_prio_val->Uint32Value());
+          if (wmm_prio_val->IsUint32())
+            qos_params.wmm_prio = static_cast<pj_qos_wmm_prio>(wmm_prio_val->Uint32Value());
+          transportConfig.qosParams = qos_params;
+        }
 
         val = obj->Get(String::New("tlsConfig"));
         if (val->IsObject()) {
@@ -1162,7 +1220,27 @@ public:
           JS2PJ_BOOL(tls_obj, requireClientCert, tlsConfig);
           JS2PJ_UINT(tls_obj, msecTimeout, tlsConfig);
           JS2PJ_ENUM(tls_obj, qosType, pj_qos_type, tlsConfig);
-          //JS2PJ_INT(tls_obj, qosParams, tlsConfig);
+
+          val = tls_obj->Get(String::New("qosParams"));
+          if (val->IsObject()) {
+            HandleScope scope;
+            pj_qos_params qos_params;
+            Local<Object> qos_obj = val->ToObject();
+            Local<Value> flags_val = qos_obj->Get(String::New("flags"));
+            Local<Value> dscp_val = qos_obj->Get(String::New("dscp_val"));
+            Local<Value> so_prio_val = qos_obj->Get(String::New("so_prio"));
+            Local<Value> wmm_prio_val = qos_obj->Get(String::New("wmm_prio"));
+            if (flags_val->IsUint32())
+              qos_params.flags = static_cast<pj_uint8_t>(flags_val->Uint32Value());
+            if (dscp_val->IsUint32())
+              qos_params.dscp_val = static_cast<pj_uint8_t>(dscp_val->Uint32Value());
+            if (so_prio_val->IsUint32())
+              qos_params.so_prio = static_cast<pj_uint8_t>(so_prio_val->Uint32Value());
+            if (wmm_prio_val->IsUint32())
+              qos_params.wmm_prio = static_cast<pj_qos_wmm_prio>(wmm_prio_val->Uint32Value());
+            tlsConfig.qosParams = qos_params;
+          }
+
           JS2PJ_BOOL(tls_obj, qosIgnoreError, tlsConfig);
 
           transportConfig.tlsConfig = tlsConfig;

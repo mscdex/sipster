@@ -750,7 +750,23 @@ public:
         JS2PJ_STR(tls_obj, privKeyFile, tp_cfg.tlsConfig);
         JS2PJ_STR(tls_obj, password, tp_cfg.tlsConfig);
         JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tp_cfg.tlsConfig);
-        // TODO: ciphers
+
+        val = tls_obj->Get(String::New("ciphers"));
+        if (val->IsArray()) {
+          HandleScope scope;
+          const Local<Array> arr_obj = Local<Array>::Cast(val);
+          const uint32_t arr_length = arr_obj->Length();
+          if (arr_length > 0) {
+            vector<int> ciphers;
+            for (uint32_t i = 0; i < arr_length; ++i) {
+              HandleScope scope;
+              const Local<Value> value = arr_obj->Get(i);
+              ciphers.push_back(value->Int32Value());
+            }
+            tp_cfg.tlsConfig.ciphers = ciphers;
+          }
+        }
+
         JS2PJ_BOOL(tls_obj, verifyServer, tp_cfg.tlsConfig);
         JS2PJ_BOOL(tls_obj, verifyClient, tp_cfg.tlsConfig);
         JS2PJ_BOOL(tls_obj, requireClientCert, tp_cfg.tlsConfig);
@@ -1214,7 +1230,23 @@ public:
           JS2PJ_STR(tls_obj, privKeyFile, tlsConfig);
           JS2PJ_STR(tls_obj, password, tlsConfig);
           JS2PJ_ENUM(tls_obj, method, pjsip_ssl_method, tlsConfig);
-          // TODO: ciphers
+
+          val = tls_obj->Get(String::New("ciphers"));
+          if (val->IsArray()) {
+            HandleScope scope;
+            const Local<Array> arr_obj = Local<Array>::Cast(val);
+            const uint32_t arr_length = arr_obj->Length();
+            if (arr_length > 0) {
+              vector<int> ciphers;
+              for (uint32_t i = 0; i < arr_length; ++i) {
+                HandleScope scope;
+                const Local<Value> value = arr_obj->Get(i);
+                ciphers.push_back(value->Int32Value());
+              }
+              tlsConfig.ciphers = ciphers;
+            }
+          }
+
           JS2PJ_BOOL(tls_obj, verifyServer, tlsConfig);
           JS2PJ_BOOL(tls_obj, verifyClient, tlsConfig);
           JS2PJ_BOOL(tls_obj, requireClientCert, tlsConfig);

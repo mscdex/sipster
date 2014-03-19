@@ -477,6 +477,7 @@ public:
     SIPSTERCall* call = NULL;
     if (args.Length() > 0) {
       if (SIPSTERAccount_constructor->HasInstance(args[0])) {
+        HandleScope scope;
         Local<Object> acct_inst = Local<Object>(Object::Cast(*args[0]));
         Account* acct = ObjectWrap::Unwrap<Account>(acct_inst);
         call = new SIPSTERCall(*acct);
@@ -712,6 +713,7 @@ public:
 
     Local<Value> val;
     if (args.Length() > 0 && args[0]->IsObject()) {
+      HandleScope scope;
       Local<Object> obj = args[0]->ToObject();
       JS2PJ_UINT(obj, port, tp_cfg);
       JS2PJ_UINT(obj, portRange, tp_cfg);
@@ -722,6 +724,7 @@ public:
 
       val = obj->Get(String::New("tlsConfig"));
       if (val->IsObject()) {
+        HandleScope scope;
         Local<Object> tls_obj = val->ToObject();
         JS2PJ_STR(tls_obj, CaListFile, tp_cfg.tlsConfig);
         JS2PJ_STR(tls_obj, certFile, tp_cfg.tlsConfig);
@@ -916,6 +919,7 @@ public:
 
     val = acct_obj->Get(String::New("regConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountRegConfig regConfig;
       Local<Object> reg_obj = val->ToObject();
       JS2PJ_STR(reg_obj, registrarUri, regConfig);
@@ -923,12 +927,14 @@ public:
 
       val = reg_obj->Get(String::New("headers"));
       if (val->IsObject()) {
+        HandleScope scope;
         const Local<Object> hdr_obj = val->ToObject();
         const Local<Array> hdr_props = hdr_obj->GetPropertyNames();
         const uint32_t hdr_length = hdr_props->Length();
         if (hdr_length > 0) {
           vector<SipHeader> sipheaders;
           for (uint32_t i = 0; i < hdr_length; ++i) {
+            HandleScope scope;
             const Local<Value> key = hdr_props->Get(i);
             const Local<Value> value = hdr_obj->Get(key);
             SipHeader hdr;
@@ -952,19 +958,23 @@ public:
     }
     val = acct_obj->Get(String::New("sipConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountSipConfig sipConfig;
       Local<Object> sip_obj = val->ToObject();
 
       val = sip_obj->Get(String::New("authCreds"));
       if (val->IsArray()) {
+        HandleScope scope;
         const Local<Array> arr_obj = Local<Array>::Cast(val);
         const uint32_t arr_length = arr_obj->Length();
         if (arr_length > 0) {
           vector<AuthCredInfo> creds;
           for (uint32_t i = 0; i < arr_length; ++i) {
+            HandleScope scope;
             const Local<Value> cred_value = arr_obj->Get(i);
 
             if (cred_value->IsObject()) {
+              HandleScope scope;
               const Local<Object> auth_obj = cred_value->ToObject();
               const Local<Array> auth_props = auth_obj->GetPropertyNames();
               const uint32_t auth_length = auth_props->Length();
@@ -972,6 +982,7 @@ public:
                 AuthCredInfo credinfo;
                 credinfo.dataType = -1;
                 for (uint32_t i = 0; i < auth_length; ++i) {
+                  HandleScope scope;
                   const Local<Value> key = auth_props->Get(i);
                   const Local<Value> value = auth_obj->Get(key);
                   const string keystr(*String::AsciiValue(key->ToString()));
@@ -1005,11 +1016,13 @@ public:
 
       val = sip_obj->Get(String::New("proxies"));
       if (val->IsArray()) {
+        HandleScope scope;
         const Local<Array> arr_obj = Local<Array>::Cast(val);
         const uint32_t arr_length = arr_obj->Length();
         if (arr_length > 0) {
           vector<string> proxies;
           for (uint32_t i = 0; i < arr_length; ++i) {
+            HandleScope scope;
             const Local<Value> value = arr_obj->Get(i);
             proxies.push_back(string(*String::AsciiValue(value->ToString())));
           }
@@ -1028,6 +1041,7 @@ public:
     }
     val = acct_obj->Get(String::New("callConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountCallConfig callConfig;
       Local<Object> call_obj = val->ToObject();
       JS2PJ_ENUM(call_obj, holdType, pjsua_call_hold_type, callConfig);
@@ -1040,17 +1054,20 @@ public:
     }
     val = acct_obj->Get(String::New("presConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountPresConfig presConfig;
       Local<Object> pres_obj = val->ToObject();
 
       val = pres_obj->Get(String::New("headers"));
       if (val->IsObject()) {
+        HandleScope scope;
         const Local<Object> hdr_obj = val->ToObject();
         const Local<Array> hdr_props = hdr_obj->GetPropertyNames();
         const uint32_t hdr_length = hdr_props->Length();
         if (hdr_length > 0) {
           vector<SipHeader> sipheaders;
           for (uint32_t i = 0; i < hdr_length; ++i) {
+            HandleScope scope;
             const Local<Value> key = hdr_props->Get(i);
             const Local<Value> value = hdr_obj->Get(key);
             SipHeader hdr;
@@ -1071,6 +1088,7 @@ public:
     }
     val = acct_obj->Get(String::New("mwiConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountMwiConfig mwiConfig;
       Local<Object> mwi_obj = val->ToObject();
       JS2PJ_BOOL(mwi_obj, enabled, mwiConfig);
@@ -1080,6 +1098,7 @@ public:
     }
     val = acct_obj->Get(String::New("natConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountNatConfig natConfig;
       Local<Object> nat_obj = val->ToObject();
       JS2PJ_ENUM(nat_obj, sipStunUse, pjsua_stun_use, natConfig);
@@ -1111,11 +1130,13 @@ public:
     }
     val = acct_obj->Get(String::New("mediaConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountMediaConfig mediaConfig;
       Local<Object> media_obj = val->ToObject();
 
       val = media_obj->Get(String::New("transportConfig"));
       if (val->IsObject()) {
+        HandleScope scope;
         TransportConfig transportConfig;
         Local<Object> obj = val->ToObject();
         JS2PJ_UINT(obj, port, transportConfig);
@@ -1127,6 +1148,7 @@ public:
 
         val = obj->Get(String::New("tlsConfig"));
         if (val->IsObject()) {
+          HandleScope scope;
           TlsConfig tlsConfig;
           Local<Object> tls_obj = val->ToObject();
           JS2PJ_STR(tls_obj, CaListFile, tlsConfig);
@@ -1159,6 +1181,7 @@ public:
     }
     val = acct_obj->Get(String::New("videoConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       AccountVideoConfig videoConfig;
       Local<Object> vid_obj = val->ToObject();
       JS2PJ_BOOL(vid_obj, autoShowIncoming, videoConfig);
@@ -1361,6 +1384,7 @@ public:
     TransportId tid;
     if (args.Length() > 0
         && SIPSTERTransport_constructor->HasInstance(args[0])) {
+      HandleScope scope;
       Local<Object> inst_obj = Local<Object>(Object::Cast(*args[0]));
       SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(inst_obj);
       tid = trans->transId;
@@ -1549,6 +1573,7 @@ void dumb_cb(uv_async_t* handle, int status) {
           break;
         }
         if (!ev_name.IsEmpty()) {
+          HandleScope scope;
           SIPSTERCall* call = ev.call;
           Handle<Value> emit_argv[1] = { ev_name };
           call->emit->Call(call->handle_, 1, emit_argv);
@@ -1568,6 +1593,7 @@ void dumb_cb(uv_async_t* handle, int status) {
         for (unsigned i = 0, m = 0; i < ci.media.size(); ++i) {
           if (ci.media[i].type==PJMEDIA_TYPE_AUDIO
               && (media = static_cast<AudioMedia*>(call->getMedia(i)))) {
+            HandleScope scope;
             Local<Object> med_obj;
             med_obj = SIPSTERMedia_constructor->GetFunction()
                                               ->NewInstance(0, NULL);
@@ -1578,6 +1604,7 @@ void dumb_cb(uv_async_t* handle, int status) {
           }
         }
         if (medias->Length() > 0) {
+          HandleScope scope;
           Handle<Value> emit_argv[2] = { ev_CALLMEDIA_media_symbol, medias };
           call->emit->Call(call->handle_, 2, emit_argv);
         }
@@ -1677,6 +1704,7 @@ void dumb_cb(uv_async_t* handle, int status) {
 void logging_close_cb(uv_handle_t* handle) {}
 
 void logging_cb(uv_async_t* handle, int status) {
+  HandleScope scope;
   Handle<Value> log_argv[4];
   while (true) {
     uv_mutex_lock(&log_mutex);
@@ -1793,6 +1821,7 @@ static Handle<Value> CreatePlaylist(const Arguments& args) {
   unsigned opts = 0;
   vector<string> playlist;
   if (args.Length() > 0 && args[0]->IsArray()) {
+    HandleScope scope;
     const Local<Array> arr_obj = Local<Array>::Cast(args[0]);
     const uint32_t arr_length = arr_obj->Length();
     if (arr_length == 0) {
@@ -1867,9 +1896,11 @@ static Handle<Value> EPInit(const Arguments& args) {
 
   Local<Value> val;
   if (args.Length() > 0 && args[0]->IsObject()) {
+    HandleScope scope;
     Local<Object> cfg_obj = args[0]->ToObject();
     val = cfg_obj->Get(String::New("uaConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       UaConfig uaConfig;
       Local<Object> ua_obj = val->ToObject();
       JS2PJ_UINT(ua_obj, maxCalls, uaConfig);
@@ -1878,11 +1909,13 @@ static Handle<Value> EPInit(const Arguments& args) {
 
       val = ua_obj->Get(String::New("nameserver"));
       if (val->IsArray()) {
+        HandleScope scope;
         const Local<Array> arr_obj = Local<Array>::Cast(val);
         const uint32_t arr_length = arr_obj->Length();
         if (arr_length > 0) {
           vector<string> nameservers;
           for (uint32_t i = 0; i < arr_length; ++i) {
+            HandleScope scope;
             const Local<Value> arr_val = arr_obj->Get(i);
             if (arr_val->IsString())
               nameservers.push_back(string(*String::AsciiValue(arr_val->ToString())));
@@ -1896,11 +1929,13 @@ static Handle<Value> EPInit(const Arguments& args) {
 
       val = ua_obj->Get(String::New("stunServer"));
       if (val->IsArray()) {
+        HandleScope scope;
         const Local<Array> arr_obj = Local<Array>::Cast(val);
         const uint32_t arr_length = arr_obj->Length();
         if (arr_length > 0) {
           vector<string> stunServers;
           for (uint32_t i = 0; i < arr_length; ++i) {
+            HandleScope scope;
             const Local<Value> arr_val = arr_obj->Get(i);
             if (arr_val->IsString())
               stunServers.push_back(string(*String::AsciiValue(arr_val->ToString())));
@@ -1919,6 +1954,7 @@ static Handle<Value> EPInit(const Arguments& args) {
 
     val = cfg_obj->Get(String::New("logConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       LogConfig logConfig;
       Local<Object> log_obj = val->ToObject();
       JS2PJ_UINT(log_obj, msgLogging, logConfig);
@@ -1930,6 +1966,7 @@ static Handle<Value> EPInit(const Arguments& args) {
 
       val = log_obj->Get(String::New("writer"));
       if (val->IsFunction()) {
+        HandleScope scope;
         if (logger) {
           delete logger;
           uv_close(reinterpret_cast<uv_handle_t*>(&logging), logging_close_cb);
@@ -1945,6 +1982,7 @@ static Handle<Value> EPInit(const Arguments& args) {
 
     val = cfg_obj->Get(String::New("medConfig"));
     if (val->IsObject()) {
+      HandleScope scope;
       MediaConfig medConfig;
       Local<Object> med_obj = val->ToObject();
       JS2PJ_UINT(med_obj, clockRate, medConfig);

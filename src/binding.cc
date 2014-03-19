@@ -1027,40 +1027,25 @@ public:
           for (uint32_t i = 0; i < arr_length; ++i) {
             HandleScope scope;
             const Local<Value> cred_value = arr_obj->Get(i);
-
             if (cred_value->IsObject()) {
               HandleScope scope;
               const Local<Object> auth_obj = cred_value->ToObject();
-              const Local<Array> auth_props = auth_obj->GetPropertyNames();
-              const uint32_t auth_length = auth_props->Length();
-              if (auth_length > 0) {
-                AuthCredInfo credinfo;
-                credinfo.dataType = -1;
-                for (uint32_t i = 0; i < auth_length; ++i) {
-                  HandleScope scope;
-                  const Local<Value> key = auth_props->Get(i);
-                  const Local<Value> value = auth_obj->Get(key);
-                  const string keystr(*String::AsciiValue(key->ToString()));
-                  const string valstr(*String::AsciiValue(value->ToString()));
-                  if (keystr == "scheme")
-                    credinfo.scheme = valstr;
-                  else if (keystr == "realm")
-                    credinfo.realm = valstr;
-                  else if (keystr == "username")
-                    credinfo.username = valstr;
-                  else if (keystr == "dataType") {
-                    if (valstr == "digest")
-                      credinfo.dataType =  PJSIP_CRED_DATA_DIGEST;
-                    else
-                      credinfo.dataType = PJSIP_CRED_DATA_PLAIN_PASSWD;
-                  } else if (keystr == "data")
-                    credinfo.data = valstr;
-                }
-                if (credinfo.scheme.length() > 0
-                    && credinfo.realm.length() > 0
-                    && credinfo.username.length() > 0
-                    && credinfo.dataType >= 0)
-                  creds.push_back(credinfo);
+              AuthCredInfo credinfo;
+              Local<Value> scheme_val = auth_obj->Get(String::New("scheme"));
+              Local<Value> realm_val = auth_obj->Get(String::New("realm"));
+              Local<Value> username_val = auth_obj->Get(String::New("username"));
+              Local<Value> dataType_val = auth_obj->Get(String::New("dataType"));
+              Local<Value> data_val = auth_obj->Get(String::New("data"));
+              if (scheme_val->IsString()
+                  && realm_val->IsString()
+                  && username_val->IsString()
+                  && dataType_val->IsInt32()
+                  && data_val->IsString()) {
+                credinfo.scheme = string(*String::Utf8Value(scheme_val->ToString()));
+                credinfo.realm = string(*String::Utf8Value(realm_val->ToString()));
+                credinfo.username = string(*String::Utf8Value(username_val->ToString()));
+                credinfo.dataType = dataType_val->Int32Value();
+                credinfo.data = string(*String::Utf8Value(data_val->ToString()));
               }
             }
           }

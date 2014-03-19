@@ -1090,7 +1090,17 @@ public:
       JS2PJ_STR(sip_obj, contactUriParams, sipConfig);
       JS2PJ_BOOL(sip_obj, authInitialEmpty, sipConfig);
       JS2PJ_STR(sip_obj, authInitialAlgorithm, sipConfig);
-      // TODO: transportId
+
+      // deviates from the pjsip config structure to accept a Transport instance
+      // instead of a transport id since that information is made available to
+      // JS land
+      val = sip_obj->Get(String::New("transport"));
+      if (SIPSTERTransport_constructor->HasInstance(val)) {
+        HandleScope scope;
+        Local<Object> inst_obj = Local<Object>(Object::Cast(*val));
+        SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(inst_obj);
+        sipConfig.transportId = trans->transId;
+      }
 
       acct_cfg.sipConfig = sipConfig;
     }

@@ -49,21 +49,29 @@ acct.on('call', function(info, call) {
 
   // listen for DTMF digits
   call.on('dtmf', function(digit) {
-    console.log('=== DTMF digit pressed: ' + digit);
+    console.log('=== DTMF digit received: ' + digit);
   });
 
   // audio stream(s) available
-  call.on('media', function(media) {
+  call.on('media', function(medias) {
     // play looping .wav file to the first audio stream
     var player = sipster.createPlayer('sound.wav');
-    player.startTransmitTo(media[0]);
+    player.startTransmitTo(medias[0]);
+
+    // record the audio of the other side, this will not include the audio from
+    // the player above.
+    var recorder = sipster.createRecorder('call.wav');
+    medias[0].startTransmitTo(recorder);
+    // to include the player audio, you can mix the sources together simply
+    // by transmitting to the same recorder:
+    //   player.startTransmitTo(recorder);
   });
 
   // answer the call (with default 200 OK)
   call.answer();
 });
 
-// finalize the initialization phase ...
+// finalize the pjsip initialization phase ...
 sipster.start();
 ```
 

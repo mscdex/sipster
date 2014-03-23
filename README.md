@@ -34,7 +34,7 @@ sipster.init();
 // set up a transport to listen for incoming connections, defaults to UDP
 var transport = new sipster.Transport({ port: 5060 });
 
-// set up a SIP account, we need at least one -- as requried by pjsip
+// set up a SIP account, we need at least one -- as required by pjsip.
 // this sets up an account for calls coming from 192.168.100.10
 var acct = new sipster.Account({
   idUri: 'sip:192.168.100.10'

@@ -3,7 +3,7 @@ Description
 
 A [pjsip](http://www.pjsip.org) (or more accurately a pjsua2) binding for node.js.
 
-Familiarity with pjsua2 is a plus when using this binding.
+Familiarity with pjsip/pjsua2 is a plus when using this binding.
 
 
 Requirements

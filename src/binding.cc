@@ -845,6 +845,7 @@ public:
     SIPSTERTransport* trans = new SIPSTERTransport();
 
     trans->Wrap(args.This());
+    trans->Ref();
 
     trans->transId = tid;
     trans->enabled = true;
@@ -916,6 +917,15 @@ public:
     return Undefined();
   }
 
+  static Handle<Value> Close(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(args.This());
+
+    trans->Unref();
+
+    return Undefined();
+  }
+
   static Handle<Value> EnabledGetter(Local<String> property,
                                      const AccessorInfo& info) {
     HandleScope scope;
@@ -943,6 +953,9 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
                               "disable",
                               Disable);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
+                              "close",
+                              Close);
 
     SIPSTERTransport_constructor->PrototypeTemplate()
                                 ->SetAccessor(String::NewSymbol("enabled"),
@@ -1376,6 +1389,7 @@ public:
     }
 
     acct->Wrap(args.This());
+    acct->Ref();
 
     acct->emit = Persistent<Function>::New(
       Local<Function>::Cast(acct->handle_->Get(emit_symbol))
@@ -1538,6 +1552,15 @@ public:
     return call_obj;
   }
 
+  static Handle<Value> Close(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
+
+    acct->Unref();
+
+    return Undefined();
+  }
+
   static void Initialize(Handle<Object> target) {
     HandleScope scope;
 
@@ -1557,6 +1580,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor,
                               "setTransport",
                               SetTransport);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "close", Close);
 
     SIPSTERAccount_constructor->PrototypeTemplate()
                               ->SetAccessor(String::NewSymbol("valid"),

@@ -132,6 +132,8 @@ Transport methods
 
 * **(constructor)**([< _object_ >transportConfig]) - Creates and returns a new, enabled Transport instance. `transportConfig` is a TransportConfig-like object for if you need to change any transport options from the library defaults.
 
+* **close**() - _(void)_ - Detaches (Unrefs) the Transport from the event loop.
+
 * **getInfo**() - _object_ - Returns information (`TransportInfo`) about the transport:
     * **type** - _string_ - Transport type name.
     * **info** - _string_ - Transport string info/description.
@@ -155,6 +157,8 @@ Account methods
 ---------------
 
 * **(constructor)**(< _object_ >accountConfig) - Creates and returns a new Account instance. `accountConfig` is an AccountConfig-like object.
+
+* **close**() - _(void)_ - Detaches (Unrefs) the Account from the event loop.
 
 * **modify**(< _object_ >accountConfig) - _(void)_ - Reconfigure the Account with the given `accountConfig`.
 

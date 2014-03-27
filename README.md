@@ -1,7 +1,7 @@
 Description
 ===========
 
-A [pjsip](http://www.pjsip.org) (or more accurately a pjsua2) binding for node.js.
+A [pjsip](http://www.pjsip.org) (or more accurately a [pjsua2](http://www.pjsip.org/docs/book-latest/html/index.html)) binding for node.js.
 
 Familiarity with pjsip/pjsua2 is a plus when using this binding.
 
@@ -84,7 +84,7 @@ API
 Exported static methods
 -----------------------
 
-* **init**([< _object_ >endpointCfg]) - _(void)_ - Starts the initializion of the pjsip library (`libInit()`). This is to be done only once. `endpointCfg` is an EpConfig-like object for if you need to change any global options from the library defaults.
+* **init**([< _object_ >endpointCfg]) - _(void)_ - Starts the initializion of the pjsip library (`libInit()`). This is to be done only once. `endpointCfg` is an [EpConfig](http://www.pjsip.org/pjsip/docs/html/structpj_1_1EpConfig.htm)-like object for if you need to change any global options from the library defaults.
 
 * **start**() - _(void)_ - Finalizes the initialization of the pjsip library (`libStart()`). This is generally called once you've got everything configured and set up.
 
@@ -130,7 +130,7 @@ Exported types
 Transport methods
 -----------------
 
-* **(constructor)**([< _object_ >transportConfig]) - Creates and returns a new, enabled Transport instance. `transportConfig` is a TransportConfig-like object for if you need to change any transport options from the library defaults.
+* **(constructor)**([< _object_ >transportConfig]) - Creates and returns a new, enabled Transport instance. `transportConfig` is a [TransportConfig](http://www.pjsip.org/pjsip/docs/html/structpj_1_1TransportConfig.htm)-like object for if you need to change any transport options from the library defaults.
 
 * **close**() - _(void)_ - Detaches (Unrefs) the Transport from the event loop.
 
@@ -156,7 +156,7 @@ Transport properties
 Account methods
 ---------------
 
-* **(constructor)**(< _object_ >accountConfig) - Creates and returns a new Account instance. `accountConfig` is an AccountConfig-like object.
+* **(constructor)**(< _object_ >accountConfig) - Creates and returns a new Account instance. `accountConfig` is an [AccountConfig](http://www.pjsip.org/pjsip/docs/html/structpj_1_1AccountConfig.htm)-like object.
 
 * **close**() - _(void)_ - Detaches (Unrefs) the Account from the event loop.
 

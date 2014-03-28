@@ -231,6 +231,14 @@ Call methods
 * **ref**() - _(void)_ - Attaches the Call to the event loop.
 
 
+Call properties
+---------------
+
+* **connDuration** - _double_ - (Read-only) Call connected duration (zero when call is not established).
+
+* **totalDuration** - _double_ - (Read-only) Total call duration, including set-up time.
+
+
 Call events
 -----------
 

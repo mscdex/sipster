@@ -672,6 +672,44 @@ public:
     return Undefined();
   }
 
+  static Handle<Value> ConDurationGetter(Local<String> property,
+                                         const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(info.This());
+
+    CallInfo ci;
+
+    try {
+      ci = call->getInfo();
+    } catch(Error& err) {
+      string errstr = "Call.getInfo() error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    double duration = ci.connectDuration.sec + (ci.connectDuration.msec / 1000);
+
+    return scope.Close(Number::New(duration));
+  }
+
+  static Handle<Value> TotDurationGetter(Local<String> property,
+                                         const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(info.This());
+
+    CallInfo ci;
+
+    try {
+      ci = call->getInfo();
+    } catch(Error& err) {
+      string errstr = "Call.getInfo() error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    double duration = ci.totalDuration.sec + (ci.totalDuration.msec / 1000);
+
+    return scope.Close(Number::New(duration));
+  }
+
   static void Initialize(Handle<Object> target) {
     HandleScope scope;
 
@@ -691,6 +729,13 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "transfer", Transfer);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "ref", DoRef);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "unref", DoUnref);
+
+    SIPSTERCall_constructor->PrototypeTemplate()
+                           ->SetAccessor(String::NewSymbol("connDuration"),
+                                         ConDurationGetter);
+    SIPSTERCall_constructor->PrototypeTemplate()
+                           ->SetAccessor(String::NewSymbol("totalDuration"),
+                                         TotDurationGetter);
 
     target->Set(name, SIPSTERCall_constructor->GetFunction());
   }

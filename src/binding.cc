@@ -151,16 +151,6 @@ struct EV_ARGS_REGSTARTING {
 };
 // =============================================================================
 
-// AudioMediaPlayer EOF event ==================================================
-/*#define N_PLAYEREOF_FIELDS 0
-#define CALLDTMF_FIELDS
-struct EV_ARGS_PLAYEREOF {
-#define X(kind, ctype, name, v8type, valconv) ctype name;
-  PLAYEREOF_FIELDS
-#undef X
-};*/
-// =============================================================================
-
 #define X(kind, ctype, name, v8type, valconv)                       \
   static Persistent<String> kind##_##name##_symbol;
   INCALL_FIELDS

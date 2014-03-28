@@ -654,6 +654,24 @@ public:
     return Undefined();
   }
 
+  static Handle<Value> DoRef(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+
+    call->Ref();
+
+    return Undefined();
+  }
+
+  static Handle<Value> DoUnref(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+
+    call->Unref();
+
+    return Undefined();
+  }
+
   static void Initialize(Handle<Object> target) {
     HandleScope scope;
 
@@ -671,6 +689,8 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "update", Update);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "dtmf", DialDtmf);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "transfer", Transfer);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "ref", DoRef);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "unref", DoUnref);
 
     target->Set(name, SIPSTERCall_constructor->GetFunction());
   }
@@ -917,7 +937,16 @@ public:
     return Undefined();
   }
 
-  static Handle<Value> Close(const Arguments& args) {
+  static Handle<Value> DoRef(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(args.This());
+
+    trans->Ref();
+
+    return Undefined();
+  }
+
+  static Handle<Value> DoUnref(const Arguments& args) {
     HandleScope scope;
     SIPSTERTransport* trans = ObjectWrap::Unwrap<SIPSTERTransport>(args.This());
 
@@ -954,8 +983,11 @@ public:
                               "disable",
                               Disable);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
-                              "close",
-                              Close);
+                              "ref",
+                              DoRef);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERTransport_constructor,
+                              "unref",
+                              DoUnref);
 
     SIPSTERTransport_constructor->PrototypeTemplate()
                                 ->SetAccessor(String::NewSymbol("enabled"),
@@ -1552,7 +1584,16 @@ public:
     return call_obj;
   }
 
-  static Handle<Value> Close(const Arguments& args) {
+  static Handle<Value> DoRef(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
+
+    acct->Ref();
+
+    return Undefined();
+  }
+
+  static Handle<Value> DoUnref(const Arguments& args) {
     HandleScope scope;
     SIPSTERAccount* acct = ObjectWrap::Unwrap<SIPSTERAccount>(args.This());
 
@@ -1580,7 +1621,8 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor,
                               "setTransport",
                               SetTransport);
-    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "close", Close);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "ref", DoRef);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERAccount_constructor, "unref", DoUnref);
 
     SIPSTERAccount_constructor->PrototypeTemplate()
                               ->SetAccessor(String::NewSymbol("valid"),

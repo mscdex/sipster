@@ -132,7 +132,9 @@ Transport methods
 
 * **(constructor)**([< _object_ >transportConfig]) - Creates and returns a new, enabled Transport instance. `transportConfig` is a [TransportConfig](http://www.pjsip.org/pjsip/docs/html/structpj_1_1TransportConfig.htm)-like object for if you need to change any transport options from the library defaults.
 
-* **close**() - _(void)_ - Detaches (Unrefs) the Transport from the event loop.
+* **unref**() - _(void)_ - Detaches the Transport from the event loop.
+
+* **ref**() - _(void)_ - Attaches the Transport to the event loop (default upon instantiation).
 
 * **getInfo**() - _object_ - Returns information (`TransportInfo`) about the transport:
     * **type** - _string_ - Transport type name.
@@ -158,7 +160,9 @@ Account methods
 
 * **(constructor)**(< _object_ >accountConfig) - Creates and returns a new Account instance. `accountConfig` is an [AccountConfig](http://www.pjsip.org/pjsip/docs/html/structpj_1_1AccountConfig.htm)-like object.
 
-* **close**() - _(void)_ - Detaches (Unrefs) the Account from the event loop.
+* **unref**() - _(void)_ - Detaches the Account from the event loop.
+
+* **ref**() - _(void)_ - Attaches the Account to the event loop (default upon instantiation).
 
 * **modify**(< _object_ >accountConfig) - _(void)_ - Reconfigure the Account with the given `accountConfig`.
 
@@ -221,6 +225,10 @@ Call methods
 * **transfer**(< _string_ >destination) - _(void)_ - Transfers the call to `destination`.
 
 * **dtmf**(< _string_ >digits) - _(void)_ - Sends DTMF digits to the remote end using the RFC 2833 payload format.
+
+* **unref**() - _(void)_ - Detaches the Call from the event loop (default).
+
+* **ref**() - _(void)_ - Attaches the Call to the event loop.
 
 
 Call events

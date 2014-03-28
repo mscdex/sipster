@@ -271,7 +271,7 @@ public:
   string srcRTP;
   string srcRTCP;
 
-  SIPSTERMedia() {}
+  SIPSTERMedia() : media(NULL) {}
   ~SIPSTERMedia() {
     emit.Dispose();
     emit.Clear();
@@ -304,6 +304,7 @@ public:
   static Handle<Value> StartTransmit(const Arguments& args) {
     HandleScope scope;
     SIPSTERMedia* src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+
     if (args.Length() == 0 || !SIPSTERMedia_constructor->HasInstance(args[0])) {
       return ThrowException(Exception::TypeError(
         String::New("Expected Media object"))
@@ -335,6 +336,7 @@ public:
   static Handle<Value> StopTransmit(const Arguments& args) {
     HandleScope scope;
     SIPSTERMedia* src = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+
     if (args.Length() == 0 || !SIPSTERMedia_constructor->HasInstance(args[0])) {
       return ThrowException(Exception::TypeError(
         String::New("Expected Media object"))
@@ -361,6 +363,88 @@ public:
     }
 
     return Undefined();
+  }
+
+  static Handle<Value> AdjustRxLevel(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+
+    if (med->media) {
+      if (args.Length() > 0 && args[0]->IsNumber()) {
+        try {
+          med->media->adjustRxLevel(static_cast<float>(args[0]->NumberValue()));
+        } catch(Error& err) {
+          string errstr = "AudioMedia.adjustRxLevel() error: " + err.info();
+          return ThrowException(Exception::Error(String::New(errstr.c_str())));
+        }
+      } else {
+        return ThrowException(Exception::TypeError(
+          String::New("Missing signal level"))
+        );
+      }
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> AdjustTxLevel(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(args.This());
+
+    if (med->media) {
+      if (args.Length() > 0 && args[0]->IsNumber()) {
+        try {
+          med->media->adjustTxLevel(static_cast<float>(args[0]->NumberValue()));
+        } catch(Error& err) {
+          string errstr = "AudioMedia.adjustTxLevel() error: " + err.info();
+          return ThrowException(Exception::Error(String::New(errstr.c_str())));
+        }
+      } else {
+        return ThrowException(Exception::TypeError(
+          String::New("Missing signal level"))
+        );
+      }
+    }
+
+    return Undefined();
+  }
+
+  static Handle<Value> RxLevelGetter(Local<String> property,
+                                     const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
+
+    unsigned level = 0;
+
+    if (med->media) {
+      try {
+        level = med->media->getRxLevel();
+      } catch(Error& err) {
+        string errstr = "AudioMedia.getRxLevel() error: " + err.info();
+        return ThrowException(Exception::Error(String::New(errstr.c_str())));
+      }
+    }
+
+    return scope.Close(Integer::NewFromUnsigned(level));
+  }
+
+  static Handle<Value> TxLevelGetter(Local<String> property,
+                                     const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
+
+    unsigned level = 0;
+
+    if (med->media) {
+      try {
+        level = med->media->getTxLevel();
+      } catch(Error& err) {
+        string errstr = "AudioMedia.getTxLevel() error: " + err.info();
+        return ThrowException(Exception::Error(String::New(errstr.c_str())));
+      }
+    }
+
+    return scope.Close(Integer::NewFromUnsigned(level));
   }
 
   static Handle<Value> DirGetter(Local<String> property,
@@ -419,6 +503,12 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERMedia_constructor,
                               "stopTransmitTo",
                               StopTransmit);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERMedia_constructor,
+                              "adjustRxLevel",
+                              AdjustRxLevel);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERMedia_constructor,
+                              "adjustTxLevel",
+                              AdjustTxLevel);
 
     SIPSTERMedia_constructor->PrototypeTemplate()
                             ->SetAccessor(String::NewSymbol("dir"), DirGetter);
@@ -428,6 +518,12 @@ public:
     SIPSTERMedia_constructor->PrototypeTemplate()
                             ->SetAccessor(String::NewSymbol("rtcpAddr"),
                                           SrcRTCPGetter);
+    SIPSTERMedia_constructor->PrototypeTemplate()
+                            ->SetAccessor(String::NewSymbol("rxLevel"),
+                                          RxLevelGetter);
+    SIPSTERMedia_constructor->PrototypeTemplate()
+                            ->SetAccessor(String::NewSymbol("txLevel"),
+                                          TxLevelGetter);
 
     target->Set(name, SIPSTERMedia_constructor->GetFunction());
   }

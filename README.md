@@ -262,6 +262,10 @@ Media methods
 
 * **stopTransmitTo**(< _Media_ >sink) - _(void)_ - Stops transmitting to `sink`.
 
+* **adjustTxLevel**(< _float_ >val) - _(void)_ - Adjust the signal level of the audio sent from this Media by making it louder or quieter: a `val` of 1.0 means no level adjustment and a `val` of 0 means to mute.
+
+* **adjustRxLevel**(< _float_ >val) - _(void)_ - Adjust the signal level of the audio sent to this Media by making it louder or quieter: a `val` of 1.0 means no level adjustment and a `val` of 0 means to mute.
+
 
 Media properties
 ----------------
@@ -271,6 +275,10 @@ Media properties
 * **rtpAddr** - _string_ - Returns the remote address (and port) of where the RTP originates.
 
 * **rtcpAddr** - _string_ - Returns the remote address (and port) of where the RTCP originates.
+
+* **rxLevel** - _integer_ - Returns the last received signal level.
+
+* **txLevel** - _integer_ - Returns the last transmitted signal level.
 
 
 Media events

@@ -230,7 +230,7 @@ Call methods
 
 * **ref**() - _(void)_ - Attaches the Call to the event loop.
 
-* **getStatsDump**([< _boolean_ >inclMediaStats[, < _string_ >indent]]) - _string_ - Returns formatted statistics about the call. If `inclMediaStats` is true, then statistics about the Call's media is included (default is true). `indent` is the string to use for indenting (default is "  ").
+* **getStatsDump**([< _boolean_ >inclMediaStats[, < _string_ >indent]]) - _string_ - Returns formatted statistics about the call. If `inclMediaStats` is true, then statistics about the Call's media is included (default is true). `indent` is the string to use for indenting (default is two spaces).
 
 
 Call properties

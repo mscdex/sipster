@@ -662,6 +662,29 @@ public:
     return Undefined();
   }
 
+  static Handle<Value> GetStats(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+
+    bool with_media = true;
+    string indent = "  ";
+    if (args.Length() > 0 && args[0]->IsBoolean()) {
+      with_media = args[0]->BooleanValue();
+      if (args.Length() > 1 && args[1]->IsString())
+        indent = string(*String::Utf8Value(args[1]->ToString()));
+    }
+
+    string info;
+    try {
+      info = call->dump(with_media, indent);
+    } catch(Error& err) {
+      string errstr = "Call.dump() error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return scope.Close(String::New(info.c_str()));
+  }
+
   static Handle<Value> ConDurationGetter(Local<String> property,
                                          const AccessorInfo& info) {
     HandleScope scope;
@@ -714,29 +737,6 @@ public:
     SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(info.This());
 
     return scope.Close(Boolean::New(call->isActive()));
-  }
-
-  static Handle<Value> GetStats(const Arguments& args) {
-    HandleScope scope;
-    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
-
-    bool with_media = true;
-    string indent = "  ";
-    if (args.Length() > 0 && args[0]->IsBoolean()) {
-      with_media = args[0]->BooleanValue();
-      if (args.Length() > 1 && args[1]->IsString())
-        indent = string(*String::Utf8Value(args[1]->ToString()));
-    }
-
-    string info;
-    try {
-      info = call->dump(with_media, indent);
-    } catch(Error& err) {
-      string errstr = "Call.dump() error: " + err.info();
-      return ThrowException(Exception::Error(String::New(errstr.c_str())));
-    }
-
-    return scope.Close(String::New(info.c_str()));
   }
 
   static void Initialize(Handle<Object> target) {

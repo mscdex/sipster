@@ -268,6 +268,10 @@ Media properties
 
 * **dir** - _string_ - Returns the direction of the media from our perspective. The value is one of: 'none', 'inbound', 'outbound', 'bidirectional', or 'unknown'.
 
+* **rtpAddr** - _string_ - Returns the remote address (and port) of where the RTP originates.
+
+* **rtcpAddr** - _string_ - Returns the remote address (and port) of where the RTCP originates.
+
 
 Media events
 ------------

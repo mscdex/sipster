@@ -268,6 +268,8 @@ public:
   Persistent<Function> emit;
   AudioMedia* media;
   pjmedia_dir dir;
+  string srcRTP;
+  string srcRTCP;
 
   SIPSTERMedia() {}
   ~SIPSTERMedia() {
@@ -385,6 +387,22 @@ public:
     return scope.Close(str);
   }
 
+  static Handle<Value> SrcRTPGetter(Local<String> property,
+                                    const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
+
+    return scope.Close(String::New(med->srcRTP.c_str()));
+  }
+
+  static Handle<Value> SrcRTCPGetter(Local<String> property,
+                                     const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
+
+    return scope.Close(String::New(med->srcRTCP.c_str()));
+  }
+
   static void Initialize(Handle<Object> target) {
     HandleScope scope;
 
@@ -404,6 +422,12 @@ public:
 
     SIPSTERMedia_constructor->PrototypeTemplate()
                             ->SetAccessor(String::NewSymbol("dir"), DirGetter);
+    SIPSTERMedia_constructor->PrototypeTemplate()
+                            ->SetAccessor(String::NewSymbol("rtpAddr"),
+                                          SrcRTPGetter);
+    SIPSTERMedia_constructor->PrototypeTemplate()
+                            ->SetAccessor(String::NewSymbol("rtcpAddr"),
+                                          SrcRTCPGetter);
 
     target->Set(name, SIPSTERMedia_constructor->GetFunction());
   }
@@ -1852,6 +1876,11 @@ void dumb_cb(uv_async_t* handle, int status) {
             SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
             med->media = media;
             med->dir = ci.media[i].dir;
+            try {
+              MediaTransportInfo mti = call->getMedTransportInfo(i);
+              med->srcRTP = mti.srcRtpName;
+              med->srcRTCP = mti.srcRtcpName;
+            } catch (Error& err) {}
             medias->Set(m++, med_obj);
           }
         }

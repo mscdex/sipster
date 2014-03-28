@@ -700,6 +700,45 @@ public:
     return scope.Close(Number::New(duration));
   }
 
+  static Handle<Value> HasMediaGetter(Local<String> property,
+                                      const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(info.This());
+
+    return scope.Close(Boolean::New(call->hasMedia()));
+  }
+
+  static Handle<Value> IsActiveGetter(Local<String> property,
+                                      const AccessorInfo& info) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(info.This());
+
+    return scope.Close(Boolean::New(call->isActive()));
+  }
+
+  static Handle<Value> GetStats(const Arguments& args) {
+    HandleScope scope;
+    SIPSTERCall* call = ObjectWrap::Unwrap<SIPSTERCall>(args.This());
+
+    bool with_media = true;
+    string indent = "  ";
+    if (args.Length() > 0 && args[0]->IsBoolean()) {
+      with_media = args[0]->BooleanValue();
+      if (args.Length() > 1 && args[1]->IsString())
+        indent = string(*String::Utf8Value(args[1]->ToString()));
+    }
+
+    string info;
+    try {
+      info = call->dump(with_media, indent);
+    } catch(Error& err) {
+      string errstr = "Call.dump() error: " + err.info();
+      return ThrowException(Exception::Error(String::New(errstr.c_str())));
+    }
+
+    return scope.Close(String::New(info.c_str()));
+  }
+
   static void Initialize(Handle<Object> target) {
     HandleScope scope;
 
@@ -719,6 +758,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "transfer", Transfer);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "ref", DoRef);
     NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "unref", DoUnref);
+    NODE_SET_PROTOTYPE_METHOD(SIPSTERCall_constructor, "getStatsDump", GetStats);
 
     SIPSTERCall_constructor->PrototypeTemplate()
                            ->SetAccessor(String::NewSymbol("connDuration"),
@@ -726,6 +766,12 @@ public:
     SIPSTERCall_constructor->PrototypeTemplate()
                            ->SetAccessor(String::NewSymbol("totalDuration"),
                                          TotDurationGetter);
+    SIPSTERCall_constructor->PrototypeTemplate()
+                           ->SetAccessor(String::NewSymbol("hasMedia"),
+                                         HasMediaGetter);
+    SIPSTERCall_constructor->PrototypeTemplate()
+                           ->SetAccessor(String::NewSymbol("isActive"),
+                                         IsActiveGetter);
 
     target->Set(name, SIPSTERCall_constructor->GetFunction());
   }

@@ -1,5 +1,5 @@
 { "name": "sipster",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Brian White <mscdex@mscdex.net>",
   "description": "A pjsip binding for node.js",
   "main": "./lib/main",

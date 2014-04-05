@@ -236,9 +236,9 @@ Call methods
 Call properties
 ---------------
 
-* **connDuration** - _double_ - (Read-only) Call connected duration (zero when call is not established).
+* **connDuration** - _double_ - (Read-only) Call connected duration in seconds (zero when call is not established).
 
-* **totalDuration** - _double_ - (Read-only) Total call duration, including set-up time.
+* **totalDuration** - _double_ - (Read-only) Total call duration in seconds, including set-up time.
 
 * **hasMedia** - _boolean_ - (Read-only) True if the Call has active media.
 

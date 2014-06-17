@@ -1,6 +1,7 @@
 #include <node.h>
 #include <string.h>
 #include <strings.h>
+#include <regex.h>
 #include <pjsua2.hpp>
 
 using namespace std;
@@ -238,6 +239,8 @@ static Persistent<String> media_dir_unknown_symbol;
 static uv_async_t dumb;
 static uv_async_t logging;
 static Persistent<Object> global;
+static regex_t fromuri_regex;
+static regex_t touri_regex;
 
 class SIPSTERPlayer : public AudioMediaPlayer {
 public:
@@ -1581,12 +1584,34 @@ public:
     ev.call = call;
     ev.acct = this;
 
-    args->localUri = ci.localUri;
     args->localContact = ci.localContact;
-    args->remoteUri = ci.remoteUri;
     args->remoteContact = ci.remoteContact;
     args->callId = ci.callIdString;
     args->srcAddress = iprm.rdata.srcAddress;
+
+    const char* msgcstr = NULL;
+    int res;
+
+    // pjsip replaces uri info if it exceeds 128 characters, so we have to
+    // get the real uris from the original SIP message
+    if (ci.remoteUri == "<-error: uri too long->") {
+      msgcstr = iprm.rdata.wholeMsg.c_str();
+      regmatch_t match[2];
+      res = regexec(&fromuri_regex, msgcstr, 2, match, 0);
+      if (res == 0)
+        args->remoteUri = string(msgcstr + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
+    } else
+      args->remoteUri = ci.remoteUri;
+
+    if (ci.localUri == "<-error: uri too long->") {
+      if (!msgcstr)
+        msgcstr = iprm.rdata.wholeMsg.c_str();
+      regmatch_t match[2];
+      res = regexec(&touri_regex, msgcstr, 2, match, 0);
+      if (res == 0)
+        args->localUri = string(msgcstr + match[1].rm_so, match[1].rm_eo - match[1].rm_so);
+    } else
+      args->localUri = ci.localUri;
 
     ENQUEUE_EVENT(ev);
   }
@@ -2587,6 +2612,17 @@ extern "C" {
                 FunctionTemplate::New(CreatePlayer)->GetFunction());
     target->Set(String::NewSymbol("createPlaylist"),
                 FunctionTemplate::New(CreatePlaylist)->GetFunction());
+
+    int res;
+    res = regcomp(&fromuri_regex,
+                  "^From:.*?(<sip:.+>)",
+                  REG_ICASE|REG_EXTENDED|REG_NEWLINE);
+    assert(res == 0 && "Could not compile 'From:' URI regex");
+
+    res = regcomp(&touri_regex,
+                  "^To:.*?(<sip:.+>)",
+                  REG_ICASE|REG_EXTENDED|REG_NEWLINE);
+    assert(res == 0 && "Could not compile 'To:' URI regex");
   }
 
   NODE_MODULE(sipster, init);

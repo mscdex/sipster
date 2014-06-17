@@ -1998,13 +1998,13 @@ void dumb_cb(uv_async_t* handle, int status) {
             SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
             med->media = media;
             med->dir = ci.media[i].dir;
-            if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
+            /*if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
               try {
                 MediaTransportInfo mti = call->getMedTransportInfo(i);
                 med->srcRTP = mti.srcRtpName;
                 med->srcRTCP = mti.srcRtcpName;
               } catch (Error& err) {}
-            }
+            }*/
             medias->Set(m++, med_obj);
           }
         }

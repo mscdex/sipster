@@ -270,18 +270,20 @@ class SIPSTERMedia : public ObjectWrap {
 public:
   Persistent<Function> emit;
   AudioMedia* media;
+  bool is_media_new;
   pjmedia_dir dir;
   string srcRTP;
   string srcRTCP;
 
-  SIPSTERMedia() : media(NULL) {}
+  SIPSTERMedia() : media(NULL),is_media_new(false) {}
   ~SIPSTERMedia() {
     emit.Dispose();
     emit.Clear();
-    if (media) {
+    if (media && is_media_new) {
       delete media;
-      media = NULL;
     }
+    media = NULL;
+    is_media_new = false;
   }
 
   static Handle<Value> New(const Arguments& args) {
@@ -1973,9 +1975,12 @@ void dumb_cb(uv_async_t* handle, int status) {
           HandleScope scope;
           SIPSTERCall* call = ev.call;
           Handle<Value> emit_argv[1] = { ev_name };
-          call->emit->Call(call->handle_, 1, emit_argv);
-          Handle<Value> emit_catchall_argv[2] = { ev_CALLSTATE_state_symbol, ev_name };
-          call->emit->Call(call->handle_, 2, emit_catchall_argv);
+          if (!call->emit.IsEmpty() && !call->handle_.IsEmpty()) {
+            HandleScope scope;
+            call->emit->Call(call->handle_, 1, emit_argv);
+            Handle<Value> emit_catchall_argv[2] = { ev_CALLSTATE_state_symbol, ev_name };
+            call->emit->Call(call->handle_, 2, emit_catchall_argv);
+          }
         }
         delete args;
       }
@@ -1985,33 +1990,38 @@ void dumb_cb(uv_async_t* handle, int status) {
         SIPSTERCall* call = ev.call;
 
         Local<Array> medias = Array::New();
-        CallInfo ci = call->getInfo();
-        AudioMedia* media = NULL;
-        // TODO: update srcRTP/srcRTCP on call CONFIRMED status?
-        for (unsigned i = 0, m = 0; i < ci.media.size(); ++i) {
-          if (ci.media[i].type==PJMEDIA_TYPE_AUDIO
-              && (media = static_cast<AudioMedia*>(call->getMedia(i)))) {
-            HandleScope scope;
-            Local<Object> med_obj;
-            med_obj = SIPSTERMedia_constructor->GetFunction()
-                                              ->NewInstance(0, NULL);
-            SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
-            med->media = media;
-            med->dir = ci.media[i].dir;
-            /*if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
-              try {
-                MediaTransportInfo mti = call->getMedTransportInfo(i);
-                med->srcRTP = mti.srcRtpName;
-                med->srcRTCP = mti.srcRtcpName;
-              } catch (Error& err) {}
-            }*/
-            medias->Set(m++, med_obj);
+        CallInfo ci;
+        try {
+          ci = call->getInfo();
+          AudioMedia* media = NULL;
+          // TODO: update srcRTP/srcRTCP on call CONFIRMED status?
+          for (unsigned i = 0, m = 0; i < ci.media.size(); ++i) {
+            if (ci.media[i].type==PJMEDIA_TYPE_AUDIO
+                && (media = static_cast<AudioMedia*>(call->getMedia(i)))) {
+              HandleScope scope;
+              Local<Object> med_obj;
+              med_obj = SIPSTERMedia_constructor->GetFunction()
+                                                ->NewInstance(0, NULL);
+              SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
+              med->media = media;
+              med->dir = ci.media[i].dir;
+              /*if (ci.media[i].status == PJSUA_CALL_MEDIA_ACTIVE) {
+                try {
+                  MediaTransportInfo mti = call->getMedTransportInfo(i);
+                  med->srcRTP = mti.srcRtpName;
+                  med->srcRTCP = mti.srcRtcpName;
+                } catch (Error& err) {}
+              }*/
+              medias->Set(m++, med_obj);
+            }
           }
-        }
-        if (medias->Length() > 0) {
-          HandleScope scope;
-          Handle<Value> emit_argv[2] = { ev_CALLMEDIA_media_symbol, medias };
-          call->emit->Call(call->handle_, 2, emit_argv);
+          if (medias->Length() > 0) {
+            HandleScope scope;
+            Handle<Value> emit_argv[2] = { ev_CALLMEDIA_media_symbol, medias };
+            if (!call->emit.IsEmpty() && !call->handle_.IsEmpty())
+              call->emit->Call(call->handle_, 2, emit_argv);
+          }
+        } catch(Error& err) {
         }
       }
       break;
@@ -2074,7 +2084,8 @@ void dumb_cb(uv_async_t* handle, int status) {
             dtmf_char = String::New(digit, 1);
         }
         Handle<Value> emit_argv[2] = { ev_CALLDTMF_dtmf_symbol, dtmf_char };
-        call->emit->Call(call->handle_, 2, emit_argv);
+        if (!call->emit.IsEmpty() && !call->handle_.IsEmpty())
+          call->emit->Call(call->handle_, 2, emit_argv);
         delete args;
       }
       break;
@@ -2082,7 +2093,8 @@ void dumb_cb(uv_async_t* handle, int status) {
         HandleScope scope;
         SIPSTERMedia* media = ev.media;
         Handle<Value> emit_argv[1] = { ev_PLAYEREOF_eof_symbol };
-        media->emit->Call(media->handle_, 1, emit_argv);
+        if (!media->emit.IsEmpty() && !media->handle_.IsEmpty())
+          media->emit->Call(media->handle_, 1, emit_argv);
       }
       break;
       case EVENT_REGSTARTING: {
@@ -2181,6 +2193,7 @@ static Handle<Value> CreateRecorder(const Arguments& args) {
                                     ->NewInstance(0, NULL);
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = recorder;
+  med->is_media_new = true;
 
   return scope.Close(med_obj);
 }
@@ -2214,6 +2227,7 @@ static Handle<Value> CreatePlayer(const Arguments& args) {
                                     ->NewInstance(0, NULL);
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = player;
+  med->is_media_new = true;
   player->media = med;
   player->options = opts;
 
@@ -2261,6 +2275,7 @@ static Handle<Value> CreatePlaylist(const Arguments& args) {
                                     ->NewInstance(0, NULL);
   SIPSTERMedia* med = ObjectWrap::Unwrap<SIPSTERMedia>(med_obj);
   med->media = player;
+  med->is_media_new = true;
   player->media = med;
   player->options = opts;
 

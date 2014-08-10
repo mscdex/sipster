@@ -2630,14 +2630,26 @@ extern "C" {
 
     int res;
     res = regcomp(&fromuri_regex,
-                  "^From:.*?(<sip:.+>)",
+                  "^From:.*(<sip:.+>)",
                   REG_ICASE|REG_EXTENDED|REG_NEWLINE);
-    assert(res == 0 && "Could not compile 'From:' URI regex");
+    if (res != 0) {
+      char errbuf[128];
+      errbuf[0] = '\0';
+      regerror(res, &fromuri_regex, errbuf, 128);
+      fprintf(stderr, "Could not compile 'From:' URI regex: %s\n", errbuf);
+      exit(1);
+    }
 
     res = regcomp(&touri_regex,
-                  "^To:.*?(<sip:.+>)",
+                  "^To:.*(<sip:.+>)",
                   REG_ICASE|REG_EXTENDED|REG_NEWLINE);
-    assert(res == 0 && "Could not compile 'To:' URI regex");
+    if (res != 0) {
+      char errbuf[128];
+      errbuf[0] = '\0';
+      regerror(res, &touri_regex, errbuf, 128);
+      fprintf(stderr, "Could not compile 'To:' URI regex: %s\n", errbuf);
+      exit(1);
+    }
   }
 
   NODE_MODULE(sipster, init);

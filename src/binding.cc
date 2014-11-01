@@ -1297,6 +1297,7 @@ public:
                 credinfo.username = string(*String::Utf8Value(username_val->ToString()));
                 credinfo.dataType = dataType_val->Int32Value();
                 credinfo.data = string(*String::Utf8Value(data_val->ToString()));
+                creds.push_back(credinfo);
               }
             }
           }

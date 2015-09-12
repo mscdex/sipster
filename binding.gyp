@@ -3,12 +3,20 @@
     {
       'target_name': 'sipster',
       'sources': [
-        'src/binding.cc'
+        'src/binding.cc',
+        'src/SIPSTERAccount.cc',
+        'src/SIPSTERCall.cc',
+        'src/SIPSTERMedia.cc',
+        'src/SIPSTERTransport.cc',
+      ],
+      'include_dirs': [
+        "src",
+        "<!(node -e \"require('nan')\")"
       ],
       'conditions': [
         [ 'OS!="win"', {
           'cflags_cc': [
-            '<!@(pkg-config --atleast-version=2.2.1 libpjproject)',
+            '<!@(pkg-config --atleast-version=2.4.5 libpjproject)',
             '<!@(pkg-config --cflags libpjproject)',
             '-fexceptions',
             '-Wno-maybe-uninitialized',

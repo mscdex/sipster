@@ -10,8 +10,8 @@ Requirements
 ============
 
 * Non-Windows OS
-* [pjsip](http://www.pjsip.org/) -- v2.2.1 or newer
-* [node.js](http://nodejs.org/) -- v0.10.x
+* [pjsip](http://www.pjsip.org/) -- v2.4.5 or newer
+* [node.js](http://nodejs.org/) -- v0.10 or newer
 
 
 Install

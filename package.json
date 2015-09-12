@@ -3,7 +3,11 @@
   "author": "Brian White <mscdex@mscdex.net>",
   "description": "A pjsip binding for node.js",
   "main": "./lib/main",
-  "engines": { "node": "0.10.x" },
+  "dependencies": {
+    "nan": "^2.0.9"
+  },
+  "os" : [ "!win32" ],
+  "engines": { "node": ">=0.10.0" },
   "keywords": [ "sip", "pjsip" ],
   "licenses": [ { "type": "MIT", "url": "http://github.com/mscdex/sipster/raw/master/LICENSE" } ],
   "repository": { "type": "git", "url": "http://github.com/mscdex/sipster.git" }

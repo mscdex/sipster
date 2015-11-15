@@ -31,6 +31,7 @@ public:
   static NAN_METHOD(StopTransmit);
   static NAN_METHOD(AdjustRxLevel);
   static NAN_METHOD(AdjustTxLevel);
+  static NAN_METHOD(Close);
   static NAN_GETTER(RxLevelGetter);
   static NAN_GETTER(TxLevelGetter);
   static NAN_GETTER(DirGetter);

@@ -127,6 +127,18 @@ NAN_METHOD(SIPSTERMedia::AdjustTxLevel) {
   info.GetReturnValue().SetUndefined();
 }
 
+NAN_METHOD(SIPSTERMedia::Close) {
+  Nan::HandleScope scope;
+  SIPSTERMedia* med = Nan::ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
+
+  if (med->media && med->is_media_new) {
+    delete med->media;
+    med->media = NULL;
+  }
+
+  info.GetReturnValue().SetUndefined();
+}
+
 NAN_GETTER(SIPSTERMedia::RxLevelGetter) {
   SIPSTERMedia* med = Nan::ObjectWrap::Unwrap<SIPSTERMedia>(info.This());
 
@@ -214,6 +226,7 @@ void SIPSTERMedia::Initialize(Handle<Object> target) {
   Nan::SetPrototypeMethod(tpl, "stopTransmitTo", StopTransmit);
   Nan::SetPrototypeMethod(tpl, "adjustRxLevel", AdjustRxLevel);
   Nan::SetPrototypeMethod(tpl, "adjustTxLevel", AdjustTxLevel);
+  Nan::SetPrototypeMethod(tpl, "close", Close);
 
   Nan::SetAccessor(tpl->PrototypeTemplate(),
                    Nan::New("dir").ToLocalChecked(),

@@ -3,11 +3,11 @@
 
 Nan::Persistent<FunctionTemplate> SIPSTERMedia_constructor;
 
-Nan::Persistent<String> media_dir_none_symbol;
-Nan::Persistent<String> media_dir_outbound_symbol;
-Nan::Persistent<String> media_dir_inbound_symbol;
-Nan::Persistent<String> media_dir_bidi_symbol;
-Nan::Persistent<String> media_dir_unknown_symbol;
+static Nan::Persistent<String> media_dir_none_symbol;
+static Nan::Persistent<String> media_dir_outbound_symbol;
+static Nan::Persistent<String> media_dir_inbound_symbol;
+static Nan::Persistent<String> media_dir_bidi_symbol;
+static Nan::Persistent<String> media_dir_unknown_symbol;
 
 SIPSTERMedia::SIPSTERMedia() : emit(NULL), media(NULL), is_media_new(false) {}
 SIPSTERMedia::~SIPSTERMedia() {

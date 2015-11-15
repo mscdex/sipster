@@ -266,6 +266,8 @@ Media methods
 
 * **adjustRxLevel**(< _float_ >val) - _(void)_ - Adjust the signal level of the audio sent to this Media by making it louder or quieter: a `val` of 1.0 means no level adjustment and a `val` of 0 means to mute.
 
+* **close**() - _(void)_ - Immediately closes the Media. This can be useful to do explicitly since v8's garbage collector is quite lazy. After calling this, using this particular Media instance (and its methods) is useless.
+
 
 Media properties
 ----------------
